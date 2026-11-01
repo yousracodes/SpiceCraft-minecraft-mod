@@ -99,6 +99,22 @@ Client verification: compare apple, carrot, and cookie spices; test a modded
 tinted/layered food; reload a resource pack and process a fresh input; verify an
 animated/custom model uses the fallback; compare the same bottle on two clients.
 
+## Placing bottles
+
+Hold an empty or filled spice bottle and **Shift + right-click the top of a solid
+surface** to place it. Up to four bottles share one block space in a 2×2 layout.
+Aim at the desired quarter of the counter; occupied quarters reject placement.
+You can also aim at the group when adding bottles. Each bottle keeps its own data.
+The world renderer uses the same bottle item model and saved powder tint. Contents,
+servings, source effects, color, custom name, and other item data survive placement,
+saving/reloading, and recovery. Placement takes priority over seasoning when sneaking.
+
+**Left-click a bottle** to recover only that bottle, without a tool. It drops
+the original bottle once, including in creative mode. Removing its supporting
+surface drops all remaining bottles. Older single-bottle displays load into the
+first quarter. Placement uses standard block-item placement checks;
+protected areas and adventure-mode rules still apply.
+
 ## Applying spice
 
 Hold a filled spice bottle in your main hand and food in your off-hand, then

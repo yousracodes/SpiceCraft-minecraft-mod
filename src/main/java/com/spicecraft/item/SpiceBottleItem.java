@@ -5,6 +5,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
@@ -19,15 +20,17 @@ import org.joml.Vector3f;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 
-public class SpiceBottleItem extends Item {
+public class SpiceBottleItem extends BlockItem {
     private final BottleDefinition definition;
 
     public SpiceBottleItem(Properties properties, BottleDefinition definition) {
-        super(properties.stacksTo(1));
+        super(com.spicecraft.bottle.PlacedBottleRegistry.BLOCK.get(), properties.stacksTo(1));
         this.definition = java.util.Objects.requireNonNull(definition);
     }
 
     public BottleDefinition definition() { return definition; }
+
+    @Override public String getDescriptionId() { return getOrCreateDescriptionId(); }
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
@@ -73,8 +76,38 @@ public class SpiceBottleItem extends Item {
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
+        if (context.getPlayer() != null && context.getPlayer().isShiftKeyDown()) {
+            var level = context.getLevel();
+            var clicked = context.getClickedPos();
+            // Aim at either an existing bottle or the exposed counter beneath an empty quarter.
+            var target = level.getBlockState(clicked).is(com.spicecraft.bottle.PlacedBottleRegistry.BLOCK.get()) ? clicked : clicked.above();
+            if (level.getBlockEntity(target) instanceof com.spicecraft.bottle.PlacedBottleEntity entity) {
+                var player = context.getPlayer();
+                if (!player.mayBuild() || !level.mayInteract(player, target)
+                        || !player.mayUseItemAt(target, context.getClickedFace(), context.getItemInHand())) return InteractionResult.FAIL;
+                int slot = com.spicecraft.bottle.PlacedBottleBlock.slot(context.getClickLocation(), target);
+                if (!entity.bottle(slot).isEmpty()) return InteractionResult.FAIL;
+                if (!level.isClientSide && entity.insert(slot, context.getItemInHand())) {
+                    if (!player.getAbilities().instabuild) context.getItemInHand().shrink(1);
+                    level.playSound(null, target, SoundEvents.GLASS_PLACE, SoundSource.BLOCKS, 1, 1);
+                }
+                return InteractionResult.sidedSuccess(level.isClientSide);
+            }
+            if (context.getClickedFace() != net.minecraft.core.Direction.UP) return InteractionResult.FAIL;
+            return super.useOn(context);
+        }
         return context.getPlayer() == null ? InteractionResult.PASS
                 : use(context.getLevel(), context.getPlayer(), context.getHand()).getResult();
+    }
+
+    @Override protected boolean placeBlock(net.minecraft.world.item.context.BlockPlaceContext context,
+            net.minecraft.world.level.block.state.BlockState state) {
+        if (!super.placeBlock(context, state)) return false;
+        if (!context.getLevel().isClientSide && context.getLevel().getBlockEntity(context.getClickedPos())
+                instanceof com.spicecraft.bottle.PlacedBottleEntity entity) {
+            entity.insert(com.spicecraft.bottle.PlacedBottleBlock.slot(context.getClickLocation(), context.getClickedPos()), context.getItemInHand());
+        }
+        return true;
     }
 
     @Override

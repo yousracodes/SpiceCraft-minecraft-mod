@@ -17,6 +17,7 @@ public final class SpiceCraft {
                 com.spicecraft.color.ColorConfig.SPEC);
         com.spicecraft.network.ColorNetwork.register();
         var bus = FMLJavaModLoadingContext.get().getModEventBus();
+        com.spicecraft.bottle.PlacedBottleRegistry.initialize();
         com.spicecraft.machine.MachineRegistry.register(bus);
         ModItems.ITEMS.register(bus);
         ModItems.TABS.register(bus);

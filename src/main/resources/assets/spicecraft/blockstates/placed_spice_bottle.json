@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "spicecraft:block/placed_spice_bottle"
+    },
+    "facing=south": {
+      "model": "spicecraft:block/placed_spice_bottle"
+    },
+    "facing=east": {
+      "model": "spicecraft:block/placed_spice_bottle"
+    },
+    "facing=west": {
+      "model": "spicecraft:block/placed_spice_bottle"
+    }
+  }
+}
