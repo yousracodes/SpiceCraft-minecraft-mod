@@ -107,8 +107,15 @@ serving. A single food stays in the off-hand; for a stack, the seasoned item goe
 to your inventory (or drops at your feet when full), leaving the remaining food
 unchanged. This consumes a serving in creative mode too.
 
-Already-seasoned food is not seasoned again: right-click passes through to allow
-normal off-hand eating, even while the bottle is empty or cooling down. Seasoned
+Food supports up to three different source spices. To add another spice to an
+already-seasoned meal, hold the new bottle in your main hand, the meal in your
+off-hand, and **right-click**. Shift is not required. Each addition costs one serving. Duplicate
+source spices and a fourth seasoning are rejected without consuming anything.
+For a stack, only one food item receives the additional seasoning.
+
+With a filled bottle in the main hand, right-click always attempts seasoning,
+including on already-seasoned food. To eat, switch away from the bottle or put
+the food in your main hand. An empty bottle also allows off-hand eating. Seasoned
 food can be eaten at full hunger in survival from either hand to receive its
 effects; unseasoned food keeps its normal hunger rules. Non-food
 items and empty bottles cannot be used for seasoning and show an action-bar
@@ -116,6 +123,21 @@ message. Bottle clicks take priority during seasoning. A short cooldown prevents
 rapid repeated application. Sound,
 particles, and a hand swing confirm success; hover over the food to see its spice.
 Effects apply when eating, not during seasoning.
+
+Each seasoning has its own tooltip line in its saved powder color and retains
+its own effects and probabilities. On consumption, probabilities are rolled
+independently, then overlapping successful effects are merged by type: highest
+strength wins, with the longest duration at that strength (infinite wins a duration
+tie). Strengths and durations are never added together; each effect type is applied
+once, including instant effects. Source snapshots are capped at 16 effects per
+spice, for at most 48 stored effect entries per meal. Effects are evaluated only
+on consumption, not every server tick.
+
+Old single-seasoning meals remain readable, edible, and visible in tooltips.
+Adding another spice migrates them to the versioned list format, preserving source,
+color, and effects; unrelated food NBT is retained. Unknown seasoning versions are
+not overwritten. Different seasoning combinations have different item data and
+will not stack together. Changes to seasoning and bottle servings run on the server.
 
 
 Bottle model and textures: Copyright (c) 2025 Rustic-Potatoes, MIT License.

@@ -11,5 +11,8 @@
     "gui.spicecraft.seconds":  "%ss",
     "message.spicecraft.empty": "This spice bottle is empty.",
     "message.spicecraft.hold_food": "Hold food in your off-hand to season it.",
-    "message.spicecraft.already_seasoned": "This food is already seasoned."
+    "message.spicecraft.already_seasoned": "This food is already seasoned.",
+    "message.spicecraft.duplicate_spice": "This food already has that spice.",
+    "message.spicecraft.seasoning_limit": "This food already has three seasonings.",
+    "message.spicecraft.unsupported_seasoning": "This food uses an unsupported seasoning format."
 }

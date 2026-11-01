@@ -14,6 +14,7 @@ import net.minecraftforge.common.ForgeHooks;
 
 /** Snapshots standard food effects, including the probability of each effect. */
 public final class SpiceEffects {
+    public static final int MAX_EFFECTS = 16;
     public record Entry(MobEffectInstance effect, float chance) {
         public Entry {
             effect = new MobEffectInstance(effect);
@@ -29,6 +30,7 @@ public final class SpiceEffects {
     public static ListTag perServing(ListTag source, int capacity) {
         if (capacity < 1) throw new IllegalArgumentException("Capacity must be positive");
         ListTag result = source.copy();
+        while (result.size() > MAX_EFFECTS) result.remove(result.size() - 1);
         for (Tag raw : result) {
             if (raw instanceof CompoundTag entry) divideDuration(entry.getCompound("effect"), capacity);
         }
@@ -70,6 +72,7 @@ public final class SpiceEffects {
     }
 
     private static void add(ListTag result, MobEffectInstance effect, float chance) {
+        if (result.size() >= MAX_EFFECTS) return;
         if (!Float.isFinite(chance) || chance < 0 || chance > 1) return;
         CompoundTag entry = new CompoundTag();
         entry.put("effect", effect.save(new CompoundTag()));
@@ -80,6 +83,7 @@ public final class SpiceEffects {
     public static List<Entry> read(ListTag tags) {
         List<Entry> result = new ArrayList<>();
         for (Tag raw : tags) {
+            if (result.size() >= MAX_EFFECTS * SeasonedFoodData.MAX_SEASONINGS) break;
             if (!(raw instanceof CompoundTag tag)) continue;
             MobEffectInstance effect = MobEffectInstance.load(tag.getCompound("effect"));
             float chance = tag.getFloat("chance");
@@ -92,10 +96,18 @@ public final class SpiceEffects {
 
     public static void apply(ListTag tags, LivingEntity eater) {
         if (eater.level().isClientSide) return;
+        java.util.Map<MobEffect, MobEffectInstance> selected = new java.util.LinkedHashMap<>();
         for (Entry entry : read(tags)) {
             if (entry.chance() > 0 && eater.getRandom().nextFloat() < entry.chance()) {
-                eater.addEffect(new MobEffectInstance(entry.effect()));
+                MobEffectInstance candidate = entry.effect();
+                MobEffectInstance current = selected.get(candidate.getEffect());
+                if (current == null || candidate.getAmplifier() > current.getAmplifier()
+                        || (candidate.getAmplifier() == current.getAmplifier()
+                        && (candidate.getDuration() == -1 || (current.getDuration() != -1 && candidate.getDuration() > current.getDuration())))) {
+                    selected.put(candidate.getEffect(), candidate);
+                }
             }
         }
+        for (MobEffectInstance effect : selected.values()) eater.addEffect(new MobEffectInstance(effect));
     }
 }

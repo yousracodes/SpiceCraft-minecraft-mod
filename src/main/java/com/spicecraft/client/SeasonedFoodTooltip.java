@@ -2,6 +2,7 @@ package com.spicecraft.client;
 
 import com.spicecraft.SpiceCraft;
 import com.spicecraft.item.SpiceEffects;
+import com.spicecraft.item.SeasonedFoodData;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.Tag;
@@ -19,12 +20,9 @@ public final class SeasonedFoodTooltip {
 
     @SubscribeEvent
     public static void tooltip(ItemTooltipEvent event) {
-        var root = event.getItemStack().getTagElement("spicecraft");
-        if (root == null || !root.contains("seasoning", Tag.TAG_COMPOUND)) return;
-        var seasoning = root.getCompound("seasoning");
-        if (seasoning.getInt("version") != 1) return;
+        for (var seasoning : SeasonedFoodData.seasonings(event.getItemStack())) {
         var source = ResourceLocation.tryParse(seasoning.getString("source_food"));
-        if (source == null) return;
+        if (source == null) continue;
         Component sourceName = BuiltInRegistries.ITEM.containsKey(source)
                 ? BuiltInRegistries.ITEM.get(source).getDescription()
                 : Component.literal(source.toString());
@@ -39,6 +37,7 @@ public final class SeasonedFoodTooltip {
                     Component.translatable(effect.getDescriptionId()), effect.getAmplifier() + 1,
                     effect.getDuration(), Math.round(entry.chance() * 100))
                     .withStyle(effect.getEffect().isBeneficial() ? ChatFormatting.BLUE : ChatFormatting.RED));
+        }
         }
     }
 }

@@ -34,14 +34,14 @@ public class SpiceBottleItem extends Item {
         ItemStack bottle = player.getItemInHand(hand);
         if (hand != InteractionHand.MAIN_HAND) return InteractionResultHolder.pass(bottle);
         ItemStack food = player.getOffhandItem();
-        if (!food.isEmpty() && food.getFoodProperties(player) != null
-                && food.getTagElement("spicecraft") != null && food.getTagElement("spicecraft").contains("seasoning")) {
-            // The food is ready to eat. Let Minecraft try the off-hand, even with an empty bottle.
+        if (SpiceBottleData.read(bottle, definition).servings() == 0 && SeasonedFoodData.isSeasoned(food)) {
+            // Filled bottles always season; empty bottles can pass through to eating.
             return InteractionResultHolder.pass(bottle);
         }
         if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(bottle);
         String error = SpiceBottleData.read(bottle, definition).servings() == 0 ? "empty"
                 : food.isEmpty() || food.getFoodProperties(player) == null ? "hold_food" : null;
+        if (error == null) error = SeasonedFoodData.rejection(food, SpiceBottleData.read(bottle, definition).sourceFood());
         if (error != null) {
             if (!level.isClientSide) player.displayClientMessage(Component.translatable("message.spicecraft." + error), true);
             // Consume the interaction even on failure, preventing accidental off-hand eating.

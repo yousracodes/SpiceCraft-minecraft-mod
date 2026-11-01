@@ -54,11 +54,13 @@ public final class SeasoningInteractionTests {
         player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.BREAD));
         ModItems.SPICE_BOTTLE.get().use(helper.getLevel(), player, InteractionHand.MAIN_HAND);
         helper.assertTrue(ModItems.SPICE_BOTTLE.get().use(helper.getLevel(), player, InteractionHand.MAIN_HAND).getResult()
-                == InteractionResult.PASS, "Bottle must allow eating seasoned food even during its cooldown");
+                == InteractionResult.FAIL, "Filled bottle cooldown must block another seasoning attempt");
+        player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         var food = player.getOffhandItem();
         helper.assertTrue(food.use(helper.getLevel(), player, InteractionHand.OFF_HAND).getResult().consumesAction()
                 && player.isUsingItem(), "Hungry survival player must be able to start eating seasoned food");
         player.stopUsingItem();
+        player.setItemInHand(InteractionHand.MAIN_HAND, bottle);
         while (SpiceBottleData.consumeServing(bottle)) { }
         helper.assertTrue(ModItems.SPICE_BOTTLE.get().use(helper.getLevel(), player, InteractionHand.MAIN_HAND).getResult()
                 == InteractionResult.PASS, "Empty bottle must also allow eating seasoned food");
