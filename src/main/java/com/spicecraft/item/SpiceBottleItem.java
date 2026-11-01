@@ -8,6 +8,15 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 
 public class SpiceBottleItem extends Item {
     private final BottleDefinition definition;
@@ -18,6 +27,45 @@ public class SpiceBottleItem extends Item {
     }
 
     public BottleDefinition definition() { return definition; }
+
+    @Override
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        ItemStack bottle = player.getItemInHand(hand);
+        if (hand != InteractionHand.MAIN_HAND) return InteractionResultHolder.pass(bottle);
+        if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(bottle);
+        ItemStack food = player.getOffhandItem();
+        String error = SpiceBottleData.read(bottle, definition).servings() == 0 ? "empty"
+                : food.isEmpty() || food.getFoodProperties(player) == null ? "hold_food"
+                : food.getTagElement("spicecraft") != null && food.getTagElement("spicecraft").contains("seasoning")
+                ? "already_seasoned" : null;
+        if (error != null) {
+            if (!level.isClientSide) player.displayClientMessage(Component.translatable("message.spicecraft." + error), true);
+            // Consume the interaction even on failure, preventing accidental off-hand eating.
+            return InteractionResultHolder.consume(bottle);
+        }
+        if (!level.isClientSide) {
+            ItemStack seasoned = food.copyWithCount(1);
+            if (!SeasonedFoodData.season(seasoned, bottle, player)) return InteractionResultHolder.fail(bottle);
+            if (food.getCount() == 1) {
+                player.setItemInHand(InteractionHand.OFF_HAND, seasoned);
+            } else {
+                food.shrink(1);
+                if (!player.getInventory().add(seasoned)) player.drop(seasoned, false);
+            }
+            player.getCooldowns().addCooldown(this, 8);
+            player.inventoryMenu.broadcastChanges();
+            level.playSound(null, player.blockPosition(), SoundEvents.SAND_PLACE, SoundSource.PLAYERS, 0.6F, 1.4F);
+            var point = player.getEyePosition().add(player.getLookAngle().scale(0.6)).add(0, -0.3, 0);
+            ((ServerLevel) level).sendParticles(ParticleTypes.COMPOSTER, point.x, point.y, point.z, 8, 0.12, 0.08, 0.12, 0.01);
+        }
+        return InteractionResultHolder.sidedSuccess(bottle, level.isClientSide);
+    }
+
+    @Override
+    public InteractionResult useOn(UseOnContext context) {
+        return context.getPlayer() == null ? InteractionResult.PASS
+                : use(context.getLevel(), context.getPlayer(), context.getHand()).getResult();
+    }
 
     @Override
     public Component getName(ItemStack stack) {

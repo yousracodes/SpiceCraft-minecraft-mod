@@ -8,5 +8,8 @@
     "block.spicecraft.spice_maker":  "Spice Maker",
     "gui.spicecraft.food":  "Food",
     "gui.spicecraft.bottle":  "Bottle",
-    "gui.spicecraft.seconds":  "%ss"
+    "gui.spicecraft.seconds":  "%ss",
+    "message.spicecraft.empty": "This spice bottle is empty.",
+    "message.spicecraft.hold_food": "Hold food in your off-hand to season it.",
+    "message.spicecraft.already_seasoned": "This food is already seasoned."
 }

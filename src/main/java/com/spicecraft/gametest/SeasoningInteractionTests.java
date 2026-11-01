@@ -1,0 +1,61 @@
+package com.spicecraft.gametest;
+
+import com.spicecraft.SpiceCraft;
+import com.spicecraft.item.SpiceBottleData;
+import com.spicecraft.registry.ModItems;
+import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraftforge.gametest.GameTestHolder;
+import net.minecraftforge.gametest.PrefixGameTestTemplate;
+
+@GameTestHolder(SpiceCraft.MOD_ID)
+@PrefixGameTestTemplate(false)
+public final class SeasoningInteractionTests {
+    private static ItemStack bottle(Player player) {
+        ItemStack bottle = ModItems.SPICE_BOTTLE.get().getDefaultInstance();
+        SpiceBottleData.fill(bottle, ResourceLocation.tryParse("minecraft:golden_apple"), 5, 0xFFCC00);
+        player.setItemInHand(InteractionHand.MAIN_HAND, bottle);
+        return bottle;
+    }
+    @GameTest(template = "empty")
+    public static void stackAndRepeatProtection(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer();
+        ItemStack bottle = bottle(player);
+        ItemStack food = new ItemStack(Items.BREAD, 3);
+        food.getOrCreateTag().putString("custom_test", "preserved");
+        player.setItemInHand(InteractionHand.OFF_HAND, food);
+        ModItems.SPICE_BOTTLE.get().use(helper.getLevel(), player, InteractionHand.MAIN_HAND);
+        helper.assertTrue(food.getCount() == 2 && food.getTagElement("spicecraft") == null, "Only one item may be seasoned");
+        helper.assertTrue(SpiceBottleData.read(bottle, ModItems.GLASS).servings() == 4, "Use exactly one serving");
+        ItemStack seasoned = ItemStack.EMPTY;
+        for (ItemStack item : player.getInventory().items) if (item.is(Items.BREAD)) seasoned = item;
+        helper.assertTrue(seasoned.getCount() == 1 && seasoned.getTagElement("spicecraft") != null, "Deliver the seasoned item to inventory");
+        helper.assertTrue(seasoned.getTag().getString("custom_test").equals("preserved"), "Preserve existing food data");
+        player.getCooldowns().removeCooldown(ModItems.SPICE_BOTTLE.get());
+        player.setItemInHand(InteractionHand.OFF_HAND, seasoned.copy());
+        ModItems.SPICE_BOTTLE.get().use(helper.getLevel(), player, InteractionHand.MAIN_HAND);
+        helper.assertTrue(SpiceBottleData.read(bottle, ModItems.GLASS).servings() == 4, "Reject repeated seasoning without consuming a serving");
+        helper.succeed();
+    }
+    @GameTest(template = "empty")
+    public static void singleItemAndLastServing(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer();
+        ItemStack bottle = bottle(player);
+        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.STONE));
+        ModItems.SPICE_BOTTLE.get().use(helper.getLevel(), player, InteractionHand.MAIN_HAND);
+        helper.assertTrue(SpiceBottleData.read(bottle, ModItems.GLASS).servings() == 5, "Invalid targets must not consume servings");
+        for (int i = 0; i < 5; i++) {
+            player.getCooldowns().removeCooldown(ModItems.SPICE_BOTTLE.get());
+            player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.BREAD));
+            ModItems.SPICE_BOTTLE.get().use(helper.getLevel(), player, InteractionHand.MAIN_HAND);
+            helper.assertTrue(player.getOffhandItem().getTagElement("spicecraft") != null, "Single seasoned item must stay in off-hand");
+        }
+        helper.assertTrue(SpiceBottleData.read(bottle, ModItems.GLASS).servings() == 0 && SpiceBottleData.effects(bottle).isEmpty(), "Fifth serving must leave an empty reusable bottle");
+        helper.succeed();
+    }
+}

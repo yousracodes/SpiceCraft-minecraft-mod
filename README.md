@@ -63,6 +63,20 @@ Run automated machine checks with `.\gradlew.bat runGameTestServer`. For manual
 GUI verification, also check shift-clicking, two players opening the same machine,
 breaking it during processing, and saving/reopening the world mid-process.
 
+## Applying spice
+
+Hold a filled spice bottle in your main hand and food in your off-hand, then
+right-click. One food item receives the seasoning and the bottle loses one
+serving. A single food stays in the off-hand; for a stack, the seasoned item goes
+to your inventory (or drops at your feet when full), leaving the remaining food
+unchanged. This consumes a serving in creative mode too.
+
+Already-seasoned food, non-food items, and empty bottles are rejected with an
+action-bar message. Bottle clicks take priority over block activation and
+off-hand eating. A short cooldown prevents rapid repeated application. Sound,
+particles, and a hand swing confirm success; hover over the food to see its spice.
+Effects apply when eating, not during seasoning.
+
 
 Bottle model and textures: Copyright (c) 2025 Rustic-Potatoes, MIT License.
 The original notice is bundled at `META-INF/licenses/rusticsbottles-LICENSE.txt`.
