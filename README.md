@@ -30,15 +30,9 @@ Use `runServer` for a dedicated development server. Review Minecraft's EULA
 and set `eula=true` in `run/eula.txt` if you agree. Use `runData` after adding
 data providers to generate resources into `src/generated/resources`.
 
-## Project layout
 
-- `src/main/java/com/spicecraft/SpiceCraft.java`: common mod entry point.
-- `src/main/resources/META-INF/mods.toml`: Forge metadata.
-- `src/main/resources/pack.mcmeta`: resource pack metadata.
-- `gradle.properties`: mod identity and dependency versions.
-
-The starter loads SpiceCraft without adding gameplay content. The default
-license is All Rights Reserved; change `mod_license` if you select another.
+Bottle model and textures: Copyright (c) 2025 Rustic-Potatoes, MIT License.
+The original notice is bundled at `META-INF/licenses/rusticsbottles-LICENSE.txt`.
 
 References: [Forge setup](https://docs.minecraftforge.net/en/1.20.1/gettingstarted/),
 [Forge downloads](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.20.1.html).
