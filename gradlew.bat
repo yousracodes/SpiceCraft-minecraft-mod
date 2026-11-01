@@ -37,6 +37,13 @@ for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 
 @rem Find java.exe
+@rem SpiceCraft / Forge 1.20.1 requires Java 17, including the Gradle launcher.
+@rem Keep this selection local to this invocation; do not change the system JDK.
+if defined SPICECRAFT_JAVA_HOME (
+    set "JAVA_HOME=%SPICECRAFT_JAVA_HOME%"
+) else if exist "%ProgramFiles%\Java\jdk-17\bin\java.exe" (
+    set "JAVA_HOME=%ProgramFiles%\Java\jdk-17"
+)
 if defined JAVA_HOME goto findJavaFromJavaHome
 
 set JAVA_EXE=java.exe

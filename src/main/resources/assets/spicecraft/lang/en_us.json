@@ -3,5 +3,10 @@
     "itemGroup.spicecraft":  "SpiceCraft",
     "tooltip.spicecraft.servings":  "Servings: %s / %s",
     "item.spicecraft.spice_bottle":  "Empty Spice Bottle",
-    "tooltip.spicecraft.effect": "%s %s (%s ticks, %s%% chance)"
+    "tooltip.spicecraft.effect":  "%s %s (%s ticks, %s%% chance)",
+    "tooltip.spicecraft.seasoned_with": "Seasoned with: %s",
+    "block.spicecraft.spice_maker":  "Spice Maker",
+    "gui.spicecraft.food":  "Food",
+    "gui.spicecraft.bottle":  "Bottle",
+    "gui.spicecraft.seconds":  "%ss"
 }

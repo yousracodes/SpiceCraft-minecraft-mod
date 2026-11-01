@@ -21,7 +21,10 @@ public final class ModItems {
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("spicecraft", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.spicecraft"))
             .icon(() -> SPICE_BOTTLE.get().getDefaultInstance())
-            .displayItems((parameters, output) -> output.accept(SPICE_BOTTLE.get())).build());
+            .displayItems((parameters, output) -> {
+                output.accept(SPICE_BOTTLE.get());
+                output.accept(com.spicecraft.machine.MachineRegistry.ITEM.get());
+            }).build());
 
     private ModItems() {}
 }
