@@ -12,12 +12,14 @@ import net.minecraft.world.item.ItemStack;
 public class SpiceMakerMenu extends AbstractContainerMenu {
     private final Container machine;
     private final ContainerData data;
+    private final BlockPos position;
     public SpiceMakerMenu(int id, Inventory inventory, Container machine, ContainerData data, BlockPos pos) {
         super(MachineRegistry.MENU.get(), id);
         checkContainerSize(machine, 3);
         checkContainerDataCount(data, 1);
         this.machine = machine;
         this.data = data;
+        this.position = pos.immutable();
         addSlot(new Slot(machine, 0, 44, 24) { @Override public boolean mayPlace(ItemStack stack) { return SpiceMakerEntity.isFood(stack); } });
         addSlot(new Slot(machine, 1, 44, 57) { @Override public boolean mayPlace(ItemStack stack) { return SpiceMakerEntity.isEmptyBottle(stack); } });
         addSlot(new Slot(machine, 2, 116, 40) { @Override public boolean mayPlace(ItemStack stack) { return false; } });
@@ -26,6 +28,10 @@ public class SpiceMakerMenu extends AbstractContainerMenu {
         addDataSlots(data);
     }
     public int progress() { return data.get(0); }
+    public BlockPos position() { return position; }
+    public void acceptColor(ItemStack source, int color) {
+        if (machine instanceof SpiceMakerEntity entity) entity.acceptColor(source, color);
+    }
     @Override public boolean stillValid(Player player) { return machine.stillValid(player); }
     @Override public ItemStack quickMoveStack(Player player, int index) {
         Slot slot = slots.get(index);

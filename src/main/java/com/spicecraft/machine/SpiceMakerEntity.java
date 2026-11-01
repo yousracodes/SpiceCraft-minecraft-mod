@@ -22,6 +22,19 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
     public static final int PROCESS_TICKS = 200;
     private final NonNullList<ItemStack> items = NonNullList.withSize(3, ItemStack.EMPTY);
     private int progress;
+    private ItemStack colorSource = ItemStack.EMPTY;
+    private int sampledColor = -1;
+
+    public boolean acceptColor(ItemStack source, int color) {
+        if (color < 0 || color > 0xFFFFFF || !isFood(items.get(0))
+                || !ItemStack.isSameItemSameTags(items.get(0), source)) return false;
+        // First valid report owns this input's appearance; later viewers cannot recolor it.
+        if (sampledColor >= 0 && ItemStack.isSameItemSameTags(colorSource, source)) return false;
+        colorSource = source.copyWithCount(1);
+        sampledColor = color;
+        setChanged();
+        return true;
+    }
     final ContainerData data = new ContainerData() {
         public int get(int index) { return progress; }
         public void set(int index, int value) { progress = value; }
@@ -42,7 +55,9 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
         if (++machine.progress >= PROCESS_TICKS) {
             ItemStack result = machine.items.get(1).copyWithCount(1);
             SpiceBottleItem bottle = (SpiceBottleItem) result.getItem();
-            SpiceBottleData.fillFromFood(result, machine.items.get(0), bottle.definition().capacity(), bottle.definition().defaultPowderColor(), null);
+            int color = machine.sampledColor >= 0 && ItemStack.isSameItemSameTags(machine.colorSource, machine.items.get(0))
+                    ? machine.sampledColor : com.spicecraft.color.ColorConfig.FALLBACK.get();
+            SpiceBottleData.fillFromFood(result, machine.items.get(0), bottle.definition().capacity(), color, null);
             machine.items.get(0).shrink(1);
             machine.items.get(1).shrink(1);
             machine.items.set(2, result);
@@ -54,11 +69,18 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
         super.saveAdditional(tag);
         ContainerHelper.saveAllItems(tag, items);
         tag.putInt("Progress", progress);
+        if (sampledColor >= 0) {
+            tag.put("ColorSource", colorSource.save(new CompoundTag()));
+            tag.putInt("SampledColor", sampledColor);
+        }
     }
     @Override public void load(CompoundTag tag) {
         super.load(tag);
         ContainerHelper.loadAllItems(tag, items);
         progress = Math.max(0, Math.min(PROCESS_TICKS - 1, tag.getInt("Progress")));
+        colorSource = ItemStack.of(tag.getCompound("ColorSource"));
+        sampledColor = tag.contains("SampledColor") ? tag.getInt("SampledColor") : -1;
+        if (sampledColor < 0 || sampledColor > 0xFFFFFF) sampledColor = -1;
     }
     @Override public Component getDisplayName() { return Component.translatable("block.spicecraft.spice_maker"); }
     @Override public AbstractContainerMenu createMenu(int id, Inventory inventory, Player player) { return new SpiceMakerMenu(id, inventory, this, data, worldPosition); }
@@ -67,17 +89,23 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
     @Override public ItemStack getItem(int slot) { return items.get(slot); }
     @Override public ItemStack removeItem(int slot, int count) {
         ItemStack result = ContainerHelper.removeItem(items, slot, count);
+        if (slot == 0 && items.get(0).isEmpty()) { sampledColor = -1; colorSource = ItemStack.EMPTY; }
         if (!result.isEmpty()) { if (slot < 2) progress = 0; setChanged(); }
         return result;
     }
-    @Override public ItemStack removeItemNoUpdate(int slot) { if (slot < 2) progress = 0; return ContainerHelper.takeItem(items, slot); }
+    @Override public ItemStack removeItemNoUpdate(int slot) {
+        if (slot < 2) progress = 0;
+        if (slot == 0) { sampledColor = -1; colorSource = ItemStack.EMPTY; }
+        return ContainerHelper.takeItem(items, slot);
+    }
     @Override public void setItem(int slot, ItemStack stack) {
+        if (slot == 0 && !ItemStack.isSameItemSameTags(colorSource, stack)) { sampledColor = -1; colorSource = ItemStack.EMPTY; }
         if (slot < 2 && !ItemStack.isSameItemSameTags(items.get(slot), stack)) progress = 0;
         items.set(slot, stack);
         setChanged();
     }
     @Override public boolean canPlaceItem(int slot, ItemStack stack) { return slot == 0 ? isFood(stack) : slot == 1 && isEmptyBottle(stack); }
     @Override public boolean stillValid(Player player) { return Container.stillValidBlockEntity(this, player); }
-    @Override public void clearContent() { items.clear(); progress = 0; setChanged(); }
+    @Override public void clearContent() { items.clear(); progress = 0; sampledColor = -1; colorSource = ItemStack.EMPTY; setChanged(); }
     public int progress() { return progress; }
 }

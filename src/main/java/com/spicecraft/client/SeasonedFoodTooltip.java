@@ -29,8 +29,10 @@ public final class SeasonedFoodTooltip {
                 ? BuiltInRegistries.ITEM.get(source).getDescription()
                 : Component.literal(source.toString());
         Component spiceName = Component.translatable("item.spicecraft.spice_bottle.filled", sourceName);
+        int color = seasoning.contains("powder_color", Tag.TAG_INT)
+                ? seasoning.getInt("powder_color") & 0xFFFFFF : 0xFFAA00;
         event.getToolTip().add(Component.translatable("tooltip.spicecraft.seasoned_with", spiceName)
-                .withStyle(ChatFormatting.GOLD));
+                .withStyle(style -> style.withColor(color)));
         for (var entry : SpiceEffects.read(seasoning.getList("effects", Tag.TAG_COMPOUND))) {
             var effect = entry.effect();
             event.getToolTip().add(Component.translatable("tooltip.spicecraft.effect",

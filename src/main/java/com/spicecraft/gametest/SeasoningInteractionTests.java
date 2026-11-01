@@ -7,6 +7,7 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -16,6 +17,53 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @GameTestHolder(SpiceCraft.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class SeasoningInteractionTests {
+    @GameTest(template = "empty")
+    public static void fullHungerBothHands(GameTestHelper helper) {
+        for (InteractionHand hand : InteractionHand.values()) {
+            Player player = helper.makeMockPlayer();
+            player.getAbilities().instabuild = false;
+            player.getFoodData().setFoodLevel(20);
+            ItemStack bottle = bottle(player);
+            ItemStack food = new ItemStack(Items.BREAD);
+            helper.assertTrue(com.spicecraft.item.SeasonedFoodData.season(food, bottle, player), "Prepare seasoned food");
+            player.setItemInHand(hand, food);
+            var event = new net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickItem(player, hand);
+            net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(event);
+            helper.assertTrue(event.isCanceled() && event.getCancellationResult().consumesAction()
+                    && player.isUsingItem() && player.getUsedItemHand() == hand,
+                    "Full-hunger survival player must start eating from " + hand);
+            ItemStack original = food.copy();
+            ItemStack result = food.finishUsingItem(helper.getLevel(), player);
+            net.minecraftforge.event.ForgeEventFactory.onItemUseFinish(player, original, 0, result);
+            helper.assertTrue(result.isEmpty(), "Survival meal must be consumed from " + hand);
+            helper.assertTrue(player.hasEffect(net.minecraft.world.effect.MobEffects.REGENERATION), "Seasoning effects must apply after eating");
+            player.stopUsingItem();
+            player.setItemInHand(hand, new ItemStack(Items.BREAD));
+            var plain = new net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickItem(player, hand);
+            net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(plain);
+            helper.assertTrue(!plain.isCanceled() && !player.isUsingItem(), "Plain food must keep vanilla hunger rules");
+        }
+        helper.succeed();
+    }
+    @GameTest(template = "empty")
+    public static void seasonedFoodCanBeEatenInSurvival(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer();
+        player.getAbilities().instabuild = false;
+        player.getFoodData().setFoodLevel(10);
+        ItemStack bottle = bottle(player);
+        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.BREAD));
+        ModItems.SPICE_BOTTLE.get().use(helper.getLevel(), player, InteractionHand.MAIN_HAND);
+        helper.assertTrue(ModItems.SPICE_BOTTLE.get().use(helper.getLevel(), player, InteractionHand.MAIN_HAND).getResult()
+                == InteractionResult.PASS, "Bottle must allow eating seasoned food even during its cooldown");
+        var food = player.getOffhandItem();
+        helper.assertTrue(food.use(helper.getLevel(), player, InteractionHand.OFF_HAND).getResult().consumesAction()
+                && player.isUsingItem(), "Hungry survival player must be able to start eating seasoned food");
+        player.stopUsingItem();
+        while (SpiceBottleData.consumeServing(bottle)) { }
+        helper.assertTrue(ModItems.SPICE_BOTTLE.get().use(helper.getLevel(), player, InteractionHand.MAIN_HAND).getResult()
+                == InteractionResult.PASS, "Empty bottle must also allow eating seasoned food");
+        helper.succeed();
+    }
     private static ItemStack bottle(Player player) {
         ItemStack bottle = ModItems.SPICE_BOTTLE.get().getDefaultInstance();
         SpiceBottleData.fill(bottle, ResourceLocation.tryParse("minecraft:golden_apple"), 5, 0xFFCC00);

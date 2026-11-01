@@ -51,7 +51,8 @@ bottle from the right-hand slot. No fuel is required.
 The output has five servings for the initial glass bottle, source-food identity,
 saved effects, and the bottle type's fallback powder color. Each serving uses
 one fifth of finite effect durations. Custom names and bottle data are preserved.
-Dynamic food-texture colors and additional texture combinations remain future work.
+Food textures are sampled by the client while the Spice Maker interface is open.
+Additional bottle texture combinations remain future work.
 
 Processing continues with the interface closed while the chunk is ticking, and
 inventory/progress persist across saves. An occupied output pauses processing;
@@ -63,6 +64,41 @@ Run automated machine checks with `.\gradlew.bat runGameTestServer`. For manual
 GUI verification, also check shift-clicking, two players opening the same machine,
 breaking it during processing, and saving/reopening the world mid-process.
 
+## Powder colors
+
+The client samples only pixel regions covered by the food's baked-model UVs,
+including layered textures and registered item tints. Oklab hue families group
+related shades together, with overlapping neighborhoods to avoid splitting gold
+across arbitrary color buckets. Midtones and brighter saturated pixels carry more
+weight than shadows. A family must cover at least 8% of eligible pixels, preventing
+tiny highlights from replacing the main food color. Naturally dark foods retain
+their actual colors. Transparent pixels and nearly black/white outline pixels
+are ignored. Sampling is bounded and cached for up to
+512 item/NBT combinations; resource reloads clear the cache.
+
+Animated sprites, custom-rendered items, missing/unreadable textures, and samples
+with no suitable pixels use `fallbackPowderColor` in
+`config/spicecraft-common.toml` (an RGB integer in decimal). Machines operating
+without a client sample also use that fallback and still complete normally.
+
+While the machine GUI is open, its client reports a sampled RGB color. The server
+checks the open menu, its ID and position, player distance, RGB range, and exact
+current source item/NBT. The first matching report fixes the input's color, so a
+second viewer with a different resource pack cannot overwrite it. This is visual
+data only: clients cannot set effects, servings, or conversion results. Machines
+retain accepted samples across saves. Outputs save the final RGB color, so they
+keep the same appearance for all players and after resource-pack changes.
+
+The supplied model already separates glass/lid textures from the tintable inner
+powder. Empty bottles hide that layer; conversion reveals it with the saved tint.
+The original `blank.png` is entirely transparent, so filled bottles use the asset
+pack's grayscale `potion_liquid.png`, copied as `powder.png`, as a visible tint base.
+Existing filled bottles keep their existing colors rather than being recolored.
+
+Client verification: compare apple, carrot, and cookie spices; test a modded
+tinted/layered food; reload a resource pack and process a fresh input; verify an
+animated/custom model uses the fallback; compare the same bottle on two clients.
+
 ## Applying spice
 
 Hold a filled spice bottle in your main hand and food in your off-hand, then
@@ -71,9 +107,13 @@ serving. A single food stays in the off-hand; for a stack, the seasoned item goe
 to your inventory (or drops at your feet when full), leaving the remaining food
 unchanged. This consumes a serving in creative mode too.
 
-Already-seasoned food, non-food items, and empty bottles are rejected with an
-action-bar message. Bottle clicks take priority over block activation and
-off-hand eating. A short cooldown prevents rapid repeated application. Sound,
+Already-seasoned food is not seasoned again: right-click passes through to allow
+normal off-hand eating, even while the bottle is empty or cooling down. Seasoned
+food can be eaten at full hunger in survival from either hand to receive its
+effects; unseasoned food keeps its normal hunger rules. Non-food
+items and empty bottles cannot be used for seasoning and show an action-bar
+message. Bottle clicks take priority during seasoning. A short cooldown prevents
+rapid repeated application. Sound,
 particles, and a hand swing confirm success; hover over the food to see its spice.
 Effects apply when eating, not during seasoning.
 

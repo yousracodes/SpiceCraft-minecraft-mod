@@ -14,7 +14,8 @@ import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.particles.DustParticleOptions;
+import org.joml.Vector3f;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 
@@ -32,18 +33,23 @@ public class SpiceBottleItem extends Item {
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack bottle = player.getItemInHand(hand);
         if (hand != InteractionHand.MAIN_HAND) return InteractionResultHolder.pass(bottle);
-        if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(bottle);
         ItemStack food = player.getOffhandItem();
+        if (!food.isEmpty() && food.getFoodProperties(player) != null
+                && food.getTagElement("spicecraft") != null && food.getTagElement("spicecraft").contains("seasoning")) {
+            // The food is ready to eat. Let Minecraft try the off-hand, even with an empty bottle.
+            return InteractionResultHolder.pass(bottle);
+        }
+        if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(bottle);
         String error = SpiceBottleData.read(bottle, definition).servings() == 0 ? "empty"
-                : food.isEmpty() || food.getFoodProperties(player) == null ? "hold_food"
-                : food.getTagElement("spicecraft") != null && food.getTagElement("spicecraft").contains("seasoning")
-                ? "already_seasoned" : null;
+                : food.isEmpty() || food.getFoodProperties(player) == null ? "hold_food" : null;
         if (error != null) {
             if (!level.isClientSide) player.displayClientMessage(Component.translatable("message.spicecraft." + error), true);
             // Consume the interaction even on failure, preventing accidental off-hand eating.
             return InteractionResultHolder.consume(bottle);
         }
         if (!level.isClientSide) {
+            // Capture before seasoning: the last serving clears the bottle's saved color.
+            int powderColor = SpiceBottleData.read(bottle, definition).powderColor();
             ItemStack seasoned = food.copyWithCount(1);
             if (!SeasonedFoodData.season(seasoned, bottle, player)) return InteractionResultHolder.fail(bottle);
             if (food.getCount() == 1) {
@@ -56,7 +62,11 @@ public class SpiceBottleItem extends Item {
             player.inventoryMenu.broadcastChanges();
             level.playSound(null, player.blockPosition(), SoundEvents.SAND_PLACE, SoundSource.PLAYERS, 0.6F, 1.4F);
             var point = player.getEyePosition().add(player.getLookAngle().scale(0.6)).add(0, -0.3, 0);
-            ((ServerLevel) level).sendParticles(ParticleTypes.COMPOSTER, point.x, point.y, point.z, 8, 0.12, 0.08, 0.12, 0.01);
+            var particles = new DustParticleOptions(new Vector3f(
+                    (powderColor >> 16 & 255) / 255.0F,
+                    (powderColor >> 8 & 255) / 255.0F,
+                    (powderColor & 255) / 255.0F), 0.7F);
+            ((ServerLevel) level).sendParticles(particles, point.x, point.y, point.z, 8, 0.12, 0.08, 0.12, 0.01);
         }
         return InteractionResultHolder.sidedSuccess(bottle, level.isClientSide);
     }

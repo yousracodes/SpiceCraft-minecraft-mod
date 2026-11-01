@@ -17,6 +17,47 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @GameTestHolder(SpiceCraft.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class SpiceMakerTests {
+    @GameTest(template = "empty")
+    public static void colorFamiliesPreferGoldOverShadows(GameTestHelper helper) {
+        var gold = new com.spicecraft.color.PowderColors();
+        for (int i = 0; i < 30; i++) gold.add(0xFF704014);
+        for (int i = 0; i < 12; i++) {
+            gold.add(0xFFFFCC30); gold.add(0xFFEFB522); gold.add(0xFFFFDF55);
+        }
+        int result = gold.color();
+        helper.assertTrue((result >> 16 & 255) > 200 && (result >> 8 & 255) > 150 && (result & 255) < 120,
+                "Related gold shades must beat the brown shadow bucket");
+        var dark = new com.spicecraft.color.PowderColors();
+        for (int i = 0; i < 100; i++) dark.add(0xFF503020);
+        dark.add(0xFFFFFF20);
+        helper.assertTrue(dark.color() == 0x503020, "Tiny highlights must not recolor naturally dark food");
+        helper.succeed();
+    }
+    @GameTest(template = "empty")
+    public static void powderSamplingAndPersistence(GameTestHelper helper) {
+        var colors = new com.spicecraft.color.PowderColors();
+        colors.add(0x00FF00FF); colors.add(0xFF000000); colors.add(0xFFFFFFFF);
+        helper.assertTrue(colors.color() == -1, "Transparent pixels and outlines must not set powder color");
+        for (int i = 0; i < 10; i++) colors.add(0xFFCC3020);
+        colors.add(0xFF20CC30);
+        helper.assertTrue(colors.color() == 0xCC3020, "Dominant red must not average with a green accent");
+        var machine = machine(helper);
+        inputs(machine);
+        helper.assertTrue(!machine.acceptColor(new ItemStack(Items.APPLE), 0xCC3020), "Reject stale or mismatched food reports");
+        helper.assertTrue(!machine.acceptColor(machine.getItem(0), -1), "Reject out-of-range color");
+        helper.assertTrue(machine.acceptColor(machine.getItem(0), 0xCC3020), "Accept matching source sample");
+        helper.assertTrue(!machine.acceptColor(machine.getItem(0), 0x20CC30), "Later viewers must not overwrite the first sample");
+        var restored = new SpiceMakerEntity(machine.getBlockPos(), machine.getBlockState());
+        restored.load(machine.saveWithoutMetadata());
+        tick(helper, restored, 200);
+        helper.assertTrue(SpiceBottleData.read(restored.getItem(2), ModItems.GLASS).powderColor() == 0xCC3020,
+                "Sampled color must survive save/load and reach output bottle");
+        machine.setItem(0, new ItemStack(Items.APPLE));
+        tick(helper, machine, 200);
+        helper.assertTrue(SpiceBottleData.read(machine.getItem(2), ModItems.GLASS).powderColor()
+                == com.spicecraft.color.ColorConfig.FALLBACK.get(), "Changed input without sample must use fallback");
+        helper.succeed();
+    }
     private static SpiceMakerEntity machine(GameTestHelper helper) {
         BlockPos pos = helper.absolutePos(new BlockPos(1, 1, 1));
         helper.getLevel().setBlock(pos, MachineRegistry.BLOCK.get().defaultBlockState(), 3);

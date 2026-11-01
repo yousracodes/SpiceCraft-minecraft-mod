@@ -16,6 +16,22 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
 @Mod.EventBusSubscriber(modid = SpiceCraft.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class SpiceMakerScreen extends AbstractContainerScreen<SpiceMakerMenu> {
+    private net.minecraft.world.item.ItemStack reportedFood = net.minecraft.world.item.ItemStack.EMPTY;
+    private int sampleGeneration = -1;
+    @Override protected void containerTick() {
+        super.containerTick();
+        var food = menu.getSlot(0).getItem();
+        if (sampleGeneration != FoodColorSampler.generation()
+                || !net.minecraft.world.item.ItemStack.isSameItemSameTags(food, reportedFood)) {
+            sampleGeneration = FoodColorSampler.generation();
+            reportedFood = food.copy();
+            if (!food.isEmpty()) {
+                int color = FoodColorSampler.color(food);
+                if (color >= 0) com.spicecraft.network.ColorNetwork.CHANNEL.sendToServer(
+                        new com.spicecraft.network.ColorNetwork.Report(menu.containerId, menu.position(), food.copyWithCount(1), color));
+            }
+        }
+    }
     public SpiceMakerScreen(SpiceMakerMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageHeight = 180;
