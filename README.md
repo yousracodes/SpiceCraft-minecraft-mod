@@ -166,6 +166,44 @@ not overwritten. Different seasoning combinations have different item data and
 will not stack together. Changes to seasoning and bottle servings run on the server.
 
 
+## Seasoning in crafted meals
+
+Edible results from the crafting table and the inventory's 2x2 grid inherit
+seasonings from consumed edible ingredients. For example, a seasoned baked potato
+used in a modpack's salad crafting recipe passes its seasoning to the salad.
+The preview, normal pickup, and Shift-click crafting use the same result.
+
+The first three unique spice sources in ingredient-slot order are kept. Duplicate
+sources do not add strength or duration; the first occurrence wins. Each slot
+contributes one consumed ingredient, regardless of its stack size. Recipe outputs
+retain their own names and other mods' data. Recipes that already provide seasoning
+data (including unknown versions) keep their own result unchanged. Seasonings that
+remain on returned ingredients are not also transferred to the output.
+
+For recipes producing multiple portions, finite effect durations are divided by
+the output count and rounded down; effects reduced below one tick are removed.
+Instant and infinite effects instead divide their probability by the output count.
+Hidden effects also have their durations divided; a chain containing an instant or
+infinite effect has its probability divided as well. This limits the total expected
+effect budget; it does not guarantee that exactly one portion triggers an effect.
+Repeated crafting never rounds duration up. Existing foods and saved worlds keep
+their existing seasoning format and behavior.
+
+Per-world settings are in `serverconfig/spicecraft-crafting-server.toml` inside
+the world folder (the server controls these settings):
+
+```toml
+inheritSeasoning = true
+excludedRecipes = ["othermod:salad_recipe_to_skip"]
+```
+
+Set `inheritSeasoning = false` to disable inheritance, or list exact recipe IDs
+under `excludedRecipes`. Modpacks can supply defaults using the same filename in
+`defaultconfigs`. Cooking pots, ovens, and machine crafting need separate
+integrations unless they use the standard crafting-grid result calculation.
+This does not add a salad recipe or change which ingredients a recipe accepts.
+Crafting compatibility with a particular modpack should be checked in that pack.
+
 Bottle model and textures: Copyright (c) 2025 Rustic-Potatoes, MIT License.
 The original notice is bundled at `META-INF/licenses/rusticsbottles-LICENSE.txt`.
 

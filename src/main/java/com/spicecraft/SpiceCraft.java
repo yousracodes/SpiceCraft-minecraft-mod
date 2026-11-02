@@ -13,6 +13,8 @@ public final class SpiceCraft {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public SpiceCraft() {
+        net.minecraftforge.fml.ModLoadingContext.get().registerConfig(net.minecraftforge.fml.config.ModConfig.Type.SERVER,
+                com.spicecraft.crafting.CraftingConfig.SPEC, "spicecraft-crafting-server.toml");
         net.minecraftforge.fml.ModLoadingContext.get().registerConfig(net.minecraftforge.fml.config.ModConfig.Type.COMMON,
                 com.spicecraft.color.ColorConfig.SPEC);
         com.spicecraft.network.ColorNetwork.register();
