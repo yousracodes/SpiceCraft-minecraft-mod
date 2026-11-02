@@ -6,9 +6,15 @@ import com.spicecraft.machine.MachineRegistry;
 import com.spicecraft.machine.SpiceMakerEntity;
 import com.spicecraft.registry.ModItems;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraftforge.gametest.GameTestHolder;
@@ -71,6 +77,135 @@ public final class SpiceMakerTests {
         ItemStack bottle = ModItems.SPICE_BOTTLE.get().getDefaultInstance();
         bottle.setHoverName(Component.literal("My jar"));
         machine.setItem(1, bottle);
+    }
+    @GameTest(template = "empty")
+    public static void displayedBottleFollowsInventory(GameTestHelper helper) {
+        SpiceMakerEntity machine = machine(helper);
+        helper.assertTrue(machine.displayBottle().isEmpty(), "Empty machine must not display a bottle");
+        inputs(machine);
+        helper.assertTrue(ItemStack.matches(machine.displayBottle(), machine.getItem(1)), "Display input bottle");
+        var client = new SpiceMakerEntity(machine.getBlockPos(), machine.getBlockState());
+        client.load(machine.getUpdateTag());
+        helper.assertTrue(ItemStack.matches(client.displayBottle(), machine.getItem(1)), "Initial chunk data must include bottle");
+        machine.acceptColor(machine.getItem(0), 0xCC3020);
+        tick(helper, machine, 200);
+        helper.assertTrue(ItemStack.matches(machine.displayBottle(), machine.getItem(2)), "Display completed output");
+        client.load(machine.getUpdatePacket().getTag());
+        helper.assertTrue(SpiceBottleData.read(client.displayBottle(), ModItems.GLASS).powderColor() == 0xCC3020,
+                "Update packet must preserve finished bottle color");
+        machine.removeItem(2, 1);
+        client.load(machine.getUpdateTag());
+        helper.assertTrue(client.displayBottle().isEmpty(), "Removing output must clear client display");
+        inputs(machine);
+        machine.setItem(1, ItemStack.EMPTY);
+        helper.assertTrue(machine.displayBottle().isEmpty(), "Removing input must clear display");
+        inputs(machine);
+        machine.clearContent();
+        client.load(machine.getUpdateTag());
+        helper.assertTrue(client.displayBottle().isEmpty(), "Clearing inventory must clear client display");
+        helper.succeed();
+    }
+    @GameTest(template = "empty")
+    public static void displayedFoodFollowsInventory(GameTestHelper helper) {
+        SpiceMakerEntity machine = machine(helper);
+        helper.assertTrue(machine.displayFood().isEmpty(), "Empty hopper must not display food");
+        ItemStack food = new ItemStack(Items.APPLE, 2);
+        food.setHoverName(Component.literal("Hopper apple"));
+        machine.setItem(0, food);
+        var client = new SpiceMakerEntity(machine.getBlockPos(), machine.getBlockState());
+        client.load(machine.getUpdateTag());
+        helper.assertTrue(ItemStack.matches(client.displayFood(), food.copyWithCount(1)),
+                "Chunk data must display one food with its item data, even without a bottle");
+        machine.setItem(0, new ItemStack(Items.CARROT));
+        client.load(machine.getUpdatePacket().getTag());
+        helper.assertTrue(client.displayFood().is(Items.CARROT), "Replacing food must update display");
+        machine.setItem(1, ModItems.SPICE_BOTTLE.get().getDefaultInstance());
+        tick(helper, machine, 200);
+        client.load(machine.getUpdatePacket().getTag());
+        helper.assertTrue(client.displayFood().isEmpty() && !client.displayBottle().isEmpty(),
+                "Consuming the last food must clear hopper while keeping output bottle");
+        machine.setItem(0, new ItemStack(Items.APPLE));
+        machine.removeItem(0, 1);
+        client.load(machine.getUpdateTag());
+        helper.assertTrue(client.displayFood().isEmpty(), "Removing food must clear hopper");
+        machine.setItem(0, new ItemStack(Items.STONE));
+        helper.assertTrue(machine.displayFood().isEmpty(), "Invalid input must not appear as food");
+        machine.setItem(0, new ItemStack(Items.APPLE));
+        machine.clearContent();
+        client.load(machine.getUpdateTag());
+        helper.assertTrue(client.displayFood().isEmpty(), "Clearing machine must clear hopper");
+        helper.succeed();
+    }
+    @GameTest(template = "empty")
+    public static void directBottleInteraction(GameTestHelper helper) {
+        var machine = machine(helper);
+        var player = helper.makeMockPlayer();
+        player.getAbilities().instabuild = false;
+        player.getAbilities().mayBuild = true;
+        player.setShiftKeyDown(true);
+        var hand = InteractionHand.MAIN_HAND;
+        var hit = new BlockHitResult(Vec3.atCenterOf(machine.getBlockPos()), Direction.UP, machine.getBlockPos(), false);
+        var bottle = ModItems.SPICE_BOTTLE.get().getDefaultInstance();
+        bottle.setHoverName(Component.literal("Direct jar"));
+        var original = bottle.copy();
+        player.setItemInHand(hand, bottle);
+        var result = ModItems.SPICE_BOTTLE.get().useOn(new UseOnContext(player, hand, hit));
+        helper.assertTrue(result.consumesAction() && player.getItemInHand(hand).isEmpty()
+                && ItemStack.matches(machine.getItem(1), original), "Sneaking bottle use must transfer bottle into machine");
+        var extra = ModItems.SPICE_BOTTLE.get().getDefaultInstance();
+        player.setItemInHand(hand, extra);
+        ModItems.SPICE_BOTTLE.get().useOn(new UseOnContext(player, hand, hit));
+        helper.assertTrue(extra.getCount() == 1 && ItemStack.matches(machine.getItem(1), original),
+                "Occupied input must not overwrite or consume a bottle");
+        player.setItemInHand(hand, ItemStack.EMPTY);
+        machine.getBlockState().use(helper.getLevel(), player, hand, hit);
+        helper.assertTrue(machine.getItem(1).isEmpty() && ItemStack.matches(player.getItemInHand(hand), original),
+                "Empty hand must recover unprocessed bottle");
+        ModItems.SPICE_BOTTLE.get().useOn(new UseOnContext(player, hand, hit));
+        machine.setItem(0, new ItemStack(Items.APPLE));
+        machine.acceptColor(machine.getItem(0), 0xCC3020);
+        tick(helper, machine, 200);
+        var filled = machine.getItem(2).copy();
+        machine.setItem(1, extra.copy());
+        machine.getBlockState().use(helper.getLevel(), player, hand, hit);
+        helper.assertTrue(ItemStack.matches(player.getItemInHand(hand), filled) && machine.getItem(2).isEmpty()
+                && !machine.getItem(1).isEmpty(), "Take output first and preserve its color and name");
+        ModItems.SPICE_BOTTLE.get().useOn(new UseOnContext(player, hand, hit));
+        helper.assertTrue(ItemStack.matches(player.getItemInHand(hand), filled), "Filled bottles cannot be inserted");
+        helper.succeed();
+    }
+    @GameTest(template = "empty")
+    public static void droppedFoodIntake(GameTestHelper helper) {
+        var machine = machine(helper);
+        var pos = machine.getBlockPos();
+        var level = helper.getLevel();
+        var food = new ItemStack(Items.APPLE, 63);
+        food.setHoverName(Component.literal("Dropped apples"));
+        var dropped = new ItemEntity(level, pos.getX() + 0.6, pos.getY() + 1.02, pos.getZ() + 0.5, food.copy());
+        level.addFreshEntity(dropped);
+        tick(helper, machine, 1);
+        helper.assertTrue(!dropped.isAlive() && ItemStack.matches(machine.getItem(0), food),
+                "Top intake must collect edible stack and preserve item data");
+        var overflow = new ItemEntity(level, pos.getX() + 0.6, pos.getY() + 1.02, pos.getZ() + 0.5, food.copyWithCount(3));
+        level.addFreshEntity(overflow);
+        tick(helper, machine, 1);
+        helper.assertTrue(machine.getItem(0).getCount() == 64 && overflow.getItem().getCount() == 2 && overflow.isAlive(),
+                "Merge to stack limit and leave excess in world");
+        overflow.discard();
+        machine.clearContent();
+        var stone = new ItemEntity(level, pos.getX() + 0.6, pos.getY() + 1.02, pos.getZ() + 0.5, new ItemStack(Items.STONE));
+        var side = new ItemEntity(level, pos.getX() + 1.5, pos.getY() + 1.02, pos.getZ() + 0.5, new ItemStack(Items.APPLE));
+        level.addFreshEntity(stone);
+        level.addFreshEntity(side);
+        tick(helper, machine, 1);
+        helper.assertTrue(machine.getItem(0).isEmpty() && stone.isAlive() && side.isAlive(), "Reject non-food and items beside machine");
+        machine.setItem(0, new ItemStack(Items.CARROT));
+        var mismatch = new ItemEntity(level, pos.getX() + 0.6, pos.getY() + 1.02, pos.getZ() + 0.5, new ItemStack(Items.APPLE));
+        level.addFreshEntity(mismatch);
+        tick(helper, machine, 1);
+        helper.assertTrue(machine.getItem(0).is(Items.CARROT) && machine.getItem(0).getCount() == 1 && mismatch.isAlive(),
+                "Different food must not replace occupied input");
+        helper.succeed();
     }
     @GameTest(template = "empty")
     public static void timingAndContents(GameTestHelper helper) {

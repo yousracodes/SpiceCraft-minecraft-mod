@@ -6,11 +6,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.ItemStack;
@@ -24,6 +27,33 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
     private int progress;
     private ItemStack colorSource = ItemStack.EMPTY;
     private int sampledColor = -1;
+    private ItemStack lastDisplayedBottle = ItemStack.EMPTY;
+    private ItemStack lastDisplayedFood = ItemStack.EMPTY;
+
+    public ItemStack displayFood() {
+        return isFood(items.get(0)) ? items.get(0).copyWithCount(1) : ItemStack.EMPTY;
+    }
+
+    public ItemStack displayBottle() {
+        ItemStack bottle = items.get(2).isEmpty() ? items.get(1) : items.get(2);
+        return bottle.getItem() instanceof SpiceBottleItem ? bottle.copyWithCount(1) : ItemStack.EMPTY;
+    }
+
+    @Override public void setChanged() {
+        super.setChanged();
+        if (level == null || level.isClientSide) return;
+        ItemStack displayed = displayBottle();
+        ItemStack food = displayFood();
+        // Processing marks the inventory dirty every tick; only send when a displayed item changes.
+        if (!ItemStack.matches(lastDisplayedBottle, displayed) || !ItemStack.matches(lastDisplayedFood, food)) {
+            lastDisplayedBottle = displayed;
+            lastDisplayedFood = food;
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+    }
+
+    @Override public CompoundTag getUpdateTag() { return saveWithoutMetadata(); }
+    @Override public ClientboundBlockEntityDataPacket getUpdatePacket() { return ClientboundBlockEntityDataPacket.create(this); }
 
     public boolean acceptColor(ItemStack source, int color) {
         if (color < 0 || color > 0xFFFFFF || !isFood(items.get(0))
@@ -47,6 +77,8 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
         return stack.getItem() instanceof SpiceBottleItem bottle && SpiceBottleData.read(stack, bottle.definition()).servings() == 0;
     }
     public static void tick(Level level, BlockPos pos, BlockState state, SpiceMakerEntity machine) {
+        if (level.isClientSide) return;
+        machine.collectFood(level, pos);
         if (!isFood(machine.items.get(0)) || !isEmptyBottle(machine.items.get(1))) {
             if (machine.progress != 0) { machine.progress = 0; machine.setChanged(); }
             return;
@@ -65,6 +97,32 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
         }
         machine.setChanged();
     }
+    private void collectFood(Level level, BlockPos pos) {
+        ItemStack input = items.get(0);
+        int limit = input.isEmpty() ? getMaxStackSize() : Math.min(getMaxStackSize(), input.getMaxStackSize());
+        if (!input.isEmpty() && (!isFood(input) || input.getCount() >= limit)) return;
+        // The block has a full-height collision box, so dropped items rest at y + 1.
+        AABB intake = new AABB(pos.getX(), pos.getY() + 1, pos.getZ(),
+                pos.getX() + 1, pos.getY() + 1.25, pos.getZ() + 1);
+        for (ItemEntity entity : level.getEntitiesOfClass(ItemEntity.class, intake, candidate -> candidate.isAlive())) {
+            ItemStack dropped = entity.getItem().copy();
+            if (!isFood(dropped) || (!input.isEmpty() && !ItemStack.isSameItemSameTags(input, dropped))) continue;
+            int capacity = Math.min(getMaxStackSize(), dropped.getMaxStackSize()) - input.getCount();
+            int count = Math.min(capacity, dropped.getCount());
+            if (count <= 0) break;
+            if (input.isEmpty()) {
+                setItem(0, dropped.copyWithCount(count));
+                input = items.get(0);
+            } else {
+                input.grow(count);
+                setChanged();
+            }
+            dropped.shrink(count);
+            if (dropped.isEmpty()) entity.discard();
+            else entity.setItem(dropped);
+            if (input.getCount() >= Math.min(getMaxStackSize(), input.getMaxStackSize())) break;
+        }
+    }
     @Override protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
         ContainerHelper.saveAllItems(tag, items);
@@ -76,11 +134,14 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
     }
     @Override public void load(CompoundTag tag) {
         super.load(tag);
+        items.clear();
         ContainerHelper.loadAllItems(tag, items);
         progress = Math.max(0, Math.min(PROCESS_TICKS - 1, tag.getInt("Progress")));
         colorSource = ItemStack.of(tag.getCompound("ColorSource"));
         sampledColor = tag.contains("SampledColor") ? tag.getInt("SampledColor") : -1;
         if (sampledColor < 0 || sampledColor > 0xFFFFFF) sampledColor = -1;
+        lastDisplayedBottle = displayBottle();
+        lastDisplayedFood = displayFood();
     }
     @Override public Component getDisplayName() { return Component.translatable("block.spicecraft.spice_maker"); }
     @Override public AbstractContainerMenu createMenu(int id, Inventory inventory, Player player) { return new SpiceMakerMenu(id, inventory, this, data, worldPosition); }
@@ -96,7 +157,9 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
     @Override public ItemStack removeItemNoUpdate(int slot) {
         if (slot < 2) progress = 0;
         if (slot == 0) { sampledColor = -1; colorSource = ItemStack.EMPTY; }
-        return ContainerHelper.takeItem(items, slot);
+        ItemStack result = ContainerHelper.takeItem(items, slot);
+        if (!result.isEmpty()) setChanged();
+        return result;
     }
     @Override public void setItem(int slot, ItemStack stack) {
         if (slot == 0 && !ItemStack.isSameItemSameTags(colorSource, stack)) { sampledColor = -1; colorSource = ItemStack.EMPTY; }

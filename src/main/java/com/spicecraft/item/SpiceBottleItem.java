@@ -76,6 +76,15 @@ public class SpiceBottleItem extends BlockItem {
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
+        // Sneaking with an item bypasses the normal block-use callback, so route bottles explicitly.
+        if (context.getPlayer() != null && context.getPlayer().isShiftKeyDown()
+                && context.getLevel().getBlockState(context.getClickedPos()).getBlock()
+                instanceof com.spicecraft.machine.SpiceMakerBlock machine) {
+            return machine.use(context.getLevel().getBlockState(context.getClickedPos()), context.getLevel(),
+                    context.getClickedPos(), context.getPlayer(), context.getHand(),
+                    new net.minecraft.world.phys.BlockHitResult(context.getClickLocation(), context.getClickedFace(),
+                            context.getClickedPos(), context.isInside()));
+        }
         if (context.getPlayer() != null && context.getPlayer().isShiftKeyDown()) {
             var level = context.getLevel();
             var clicked = context.getClickedPos();

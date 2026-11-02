@@ -57,8 +57,18 @@ Additional bottle texture combinations remain future work.
 Processing continues with the interface closed while the chunk is ticking, and
 inventory/progress persist across saves. An occupied output pauses processing;
 removing or replacing inputs resets progress. Breaking the block drops its items.
-Shift-click transfers are supported. The block currently uses vanilla stone
-textures; crafting recipes are not defined yet.
+Shift-click transfers are supported. The block uses a custom machine model and
+texture. Its bottom tray displays the inserted empty bottle, then the finished
+bottle with its saved spice color until collected. The display updates for nearby
+players and after loading the chunk. If both bottle slots are occupied, the
+finished output is displayed. Crafting recipes are not defined yet.
+The input food is displayed in the top hopper, including when no bottle is
+inserted. It disappears when the last input food is consumed or removed.
+Shift-right-click with an empty spice bottle to insert it directly. Shift-right-click
+with an empty hand to take the finished output first, or the input bottle if no
+output is ready. Drop edible items onto the top to load the food slot; matching
+food stacks merge up to their stack limit, leaving excess or incompatible items
+in the world. Hover over the Spice Maker item to see these controls.
 
 Run automated machine checks with `.\gradlew.bat runGameTestServer`. For manual
 GUI verification, also check shift-clicking, two players opening the same machine,

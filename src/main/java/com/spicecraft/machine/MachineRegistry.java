@@ -20,7 +20,7 @@ public final class MachineRegistry {
     public static final DeferredRegister<BlockEntityType<?>> ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, SpiceCraft.MOD_ID);
     public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(ForgeRegistries.MENU_TYPES, SpiceCraft.MOD_ID);
     public static final RegistryObject<Block> BLOCK = BLOCKS.register("spice_maker", () -> new SpiceMakerBlock(
-            BlockBehaviour.Properties.of().strength(3.5F).sound(SoundType.STONE)));
+            BlockBehaviour.Properties.of().strength(3.5F).sound(SoundType.STONE).noOcclusion()));
     public static final RegistryObject<Item> ITEM = ModItems.ITEMS.register("spice_maker", () -> new BlockItem(BLOCK.get(), new Item.Properties()));
     public static final RegistryObject<BlockEntityType<SpiceMakerEntity>> ENTITY = ENTITIES.register("spice_maker",
             () -> BlockEntityType.Builder.of(SpiceMakerEntity::new, BLOCK.get()).build(null));
