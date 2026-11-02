@@ -125,6 +125,26 @@ surface drops all remaining bottles. Older single-bottle displays load into the
 first quarter. Placement uses standard block-item placement checks;
 protected areas and adventure-mode rules still apply.
 
+## Spice rack
+
+Find **Spice Rack** in the SpiceCraft tab or use `/give @s spicecraft:spice_rack`.
+The existing rack now has four shelves with four bottle positions each: **16 total**.
+It retains the supplied wood texture and fits within one block (10 units wide,
+16 tall, 4 deep; 16 units = one Minecraft block).
+
+Right-click the desired row and column with an empty or filled spice bottle to
+insert it. Right-click that slot with an empty hand to recover it. Sneaking with
+a bottle also inserts into the rack. Occupied slots reject insertion. Aim at the
+backboard behind a slot; the shelf rails mark each row. Breaking the rack drops
+all stored bottles and the rack item. Contents persist across saves and synchronize
+with nearby players, including each bottle's name, spice color, servings, and effects.
+
+Bottles appear at 25% size only inside the rack. Their displayed bounds are about
+1.503 wide x 3 tall x 1.5 deep. Each shelf has a 3.5-unit vertical opening and
+2.25-unit column spacing, leaving clear space around all sixteen bottles.
+Bottle items and counter displays retain their normal size. Existing placed racks
+use the new model; replace an older decorative rack if it has no storage entity.
+
 ## Applying spice
 
 Hold a filled spice bottle in your main hand and food in your off-hand, then

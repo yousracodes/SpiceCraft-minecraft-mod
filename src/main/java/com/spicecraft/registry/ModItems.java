@@ -24,6 +24,7 @@ public final class ModItems {
             .displayItems((parameters, output) -> {
                 output.accept(SPICE_BOTTLE.get());
                 output.accept(com.spicecraft.machine.MachineRegistry.ITEM.get());
+                output.accept(com.spicecraft.rack.SpiceRackRegistry.ITEM.get());
             }).build());
 
     private ModItems() {}
