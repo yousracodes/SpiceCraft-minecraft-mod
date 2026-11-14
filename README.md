@@ -142,7 +142,7 @@ with nearby players, including each bottle's name, spice color, servings, and ef
 Bottles appear at 25% size only inside the rack. Their displayed bounds are about
 1.503 wide x 3 tall x 1.5 deep. Each shelf has a 3.5-unit vertical opening and
 2.25-unit column spacing, leaving clear space around all sixteen bottles.
-Bottle items and counter displays retain their normal size. Existing placed racks
+Bottle items retain their normal inventory and hand size; counter displays use 60% scale. Existing placed racks
 use the new model; replace an older decorative rack if it has no storage entity.
 
 ## Applying spice

@@ -72,6 +72,11 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
     };
 
     public SpiceMakerEntity(BlockPos pos, BlockState state) { super(MachineRegistry.ENTITY.get(), pos, state); }
+    @Override public AABB getRenderBoundingBox() {
+        return new AABB(worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(),
+                worldPosition.getX() + 1, worldPosition.getY() + SpiceMakerBlock.MODEL_HEIGHT_BLOCKS,
+                worldPosition.getZ() + 1);
+    }
     public static boolean isFood(ItemStack stack) { return !stack.isEmpty() && stack.getFoodProperties(null) != null; }
     public static boolean isEmptyBottle(ItemStack stack) {
         return stack.getItem() instanceof SpiceBottleItem bottle && SpiceBottleData.read(stack, bottle.definition()).servings() == 0;
@@ -101,9 +106,10 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
         ItemStack input = items.get(0);
         int limit = input.isEmpty() ? getMaxStackSize() : Math.min(getMaxStackSize(), input.getMaxStackSize());
         if (!input.isEmpty() && (!isFood(input) || input.getCount() >= limit)) return;
-        // The block has a full-height collision box, so dropped items rest at y + 1.
-        AABB intake = new AABB(pos.getX(), pos.getY() + 1, pos.getZ(),
-                pos.getX() + 1, pos.getY() + 1.25, pos.getZ() + 1);
+        // Dropped items rest on the resized hopper at the top of the model.
+        double intakeY = pos.getY() + SpiceMakerBlock.MODEL_HEIGHT_BLOCKS;
+        AABB intake = new AABB(pos.getX(), intakeY, pos.getZ(),
+                pos.getX() + 1, intakeY + 0.25, pos.getZ() + 1);
         for (ItemEntity entity : level.getEntitiesOfClass(ItemEntity.class, intake, candidate -> candidate.isAlive())) {
             ItemStack dropped = entity.getItem().copy();
             if (!isFood(dropped) || (!input.isEmpty() && !ItemStack.isSameItemSameTags(input, dropped))) continue;

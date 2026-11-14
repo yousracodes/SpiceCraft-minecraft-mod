@@ -25,8 +25,10 @@ public final class PlacedBottleRenderer implements BlockEntityRenderer<PlacedBot
         var bottle = entity.bottle(slot);
         if (bottle.isEmpty()) continue;
         pose.pushPose();
-        pose.translate(0.25 + (slot % 2) * 0.5, 0.5, 0.25 + (slot / 2) * 0.5);
+        pose.translate(0.25 + (slot % 2) * 0.5, PlacedBottleBlock.BOTTLE_SCALE / 2.0,
+                0.25 + (slot / 2) * 0.5);
         pose.mulPose(Axis.YP.rotationDegrees(-entity.getBlockState().getValue(PlacedBottleBlock.FACING).toYRot()));
+        pose.scale(PlacedBottleBlock.BOTTLE_SCALE, PlacedBottleBlock.BOTTLE_SCALE, PlacedBottleBlock.BOTTLE_SCALE);
         Minecraft.getInstance().getItemRenderer().renderStatic(bottle, ItemDisplayContext.NONE, light, overlay,
                 pose, buffers, entity.getLevel(), (int) entity.getBlockPos().asLong());
         pose.popPose();

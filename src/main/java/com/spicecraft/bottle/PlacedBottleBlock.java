@@ -26,6 +26,9 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 public final class PlacedBottleBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final float BOTTLE_SCALE = 0.6F;
+    private static final double BOTTLE_HALF_WIDTH = 3.0 * BOTTLE_SCALE;
+    private static final double BOTTLE_HEIGHT = 12.25 * BOTTLE_SCALE;
     public static int slot(double x, double z) { return (x >= 0.5 ? 1 : 0) + (z >= 0.5 ? 2 : 0); }
     public static int slot(net.minecraft.world.phys.Vec3 hit, BlockPos pos) { return slot(hit.x - pos.getX(), hit.z - pos.getZ()); }
     public PlacedBottleBlock(Properties properties) { super(properties); registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH)); }
@@ -44,8 +47,11 @@ public final class PlacedBottleBlock extends BaseEntityBlock {
         VoxelShape shape = net.minecraft.world.phys.shapes.Shapes.empty();
         if (level.getBlockEntity(pos) instanceof PlacedBottleEntity entity) {
             for (int i = 0; i < 4; i++) if (!entity.bottle(i).isEmpty()) {
-                int x = (i % 2) * 8, z = (i / 2) * 8;
-                shape = net.minecraft.world.phys.shapes.Shapes.or(shape, Block.box(x + 1, 0, z + 1, x + 7, 13, z + 7));
+                double centerX = (i % 2) * 8 + 4;
+                double centerZ = (i / 2) * 8 + 4;
+                shape = net.minecraft.world.phys.shapes.Shapes.or(shape, Block.box(
+                        centerX - BOTTLE_HALF_WIDTH, 0, centerZ - BOTTLE_HALF_WIDTH,
+                        centerX + BOTTLE_HALF_WIDTH, BOTTLE_HEIGHT, centerZ + BOTTLE_HALF_WIDTH));
             }
         }
         return shape;

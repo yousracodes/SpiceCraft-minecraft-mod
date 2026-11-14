@@ -3,6 +3,7 @@ package com.spicecraft.gametest;
 import com.spicecraft.SpiceCraft;
 import com.spicecraft.item.SpiceBottleData;
 import com.spicecraft.machine.MachineRegistry;
+import com.spicecraft.machine.SpiceMakerBlock;
 import com.spicecraft.machine.SpiceMakerEntity;
 import com.spicecraft.registry.ModItems;
 import net.minecraft.core.BlockPos;
@@ -181,26 +182,27 @@ public final class SpiceMakerTests {
         var level = helper.getLevel();
         var food = new ItemStack(Items.APPLE, 63);
         food.setHoverName(Component.literal("Dropped apples"));
-        var dropped = new ItemEntity(level, pos.getX() + 0.6, pos.getY() + 1.02, pos.getZ() + 0.5, food.copy());
+        double intakeY = pos.getY() + SpiceMakerBlock.MODEL_HEIGHT_BLOCKS + 0.02;
+        var dropped = new ItemEntity(level, pos.getX() + 0.6, intakeY, pos.getZ() + 0.5, food.copy());
         level.addFreshEntity(dropped);
         tick(helper, machine, 1);
         helper.assertTrue(!dropped.isAlive() && ItemStack.matches(machine.getItem(0), food),
                 "Top intake must collect edible stack and preserve item data");
-        var overflow = new ItemEntity(level, pos.getX() + 0.6, pos.getY() + 1.02, pos.getZ() + 0.5, food.copyWithCount(3));
+        var overflow = new ItemEntity(level, pos.getX() + 0.6, intakeY, pos.getZ() + 0.5, food.copyWithCount(3));
         level.addFreshEntity(overflow);
         tick(helper, machine, 1);
         helper.assertTrue(machine.getItem(0).getCount() == 64 && overflow.getItem().getCount() == 2 && overflow.isAlive(),
                 "Merge to stack limit and leave excess in world");
         overflow.discard();
         machine.clearContent();
-        var stone = new ItemEntity(level, pos.getX() + 0.6, pos.getY() + 1.02, pos.getZ() + 0.5, new ItemStack(Items.STONE));
-        var side = new ItemEntity(level, pos.getX() + 1.5, pos.getY() + 1.02, pos.getZ() + 0.5, new ItemStack(Items.APPLE));
+        var stone = new ItemEntity(level, pos.getX() + 0.6, intakeY, pos.getZ() + 0.5, new ItemStack(Items.STONE));
+        var side = new ItemEntity(level, pos.getX() + 1.5, intakeY, pos.getZ() + 0.5, new ItemStack(Items.APPLE));
         level.addFreshEntity(stone);
         level.addFreshEntity(side);
         tick(helper, machine, 1);
         helper.assertTrue(machine.getItem(0).isEmpty() && stone.isAlive() && side.isAlive(), "Reject non-food and items beside machine");
         machine.setItem(0, new ItemStack(Items.CARROT));
-        var mismatch = new ItemEntity(level, pos.getX() + 0.6, pos.getY() + 1.02, pos.getZ() + 0.5, new ItemStack(Items.APPLE));
+        var mismatch = new ItemEntity(level, pos.getX() + 0.6, intakeY, pos.getZ() + 0.5, new ItemStack(Items.APPLE));
         level.addFreshEntity(mismatch);
         tick(helper, machine, 1);
         helper.assertTrue(machine.getItem(0).is(Items.CARROT) && machine.getItem(0).getCount() == 1 && mismatch.isAlive(),
