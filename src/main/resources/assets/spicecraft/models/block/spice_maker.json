@@ -2,6 +2,9 @@
 	"format_version": "26.3",
 	"credit": "Made with Blockbench",
 	"parent": "minecraft:block/block",
+	"transform": {
+		"translation": [-0.114285625, 0, 0]
+	},
 	"texture_size": [512, 512],
 	"textures": {
 		"1": "spicecraft:block/spice_maker_metallic",

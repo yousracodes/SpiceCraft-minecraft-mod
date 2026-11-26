@@ -1,6 +1,7 @@
 package com.spicecraft.event;
 
 import com.spicecraft.SpiceCraft;
+import com.spicecraft.compat.farmersdelight.FarmersDelightIntegration;
 import com.spicecraft.item.SpiceBottleItem;
 import net.minecraft.world.InteractionHand;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -15,6 +16,10 @@ public final class SeasoningInteraction {
     @SubscribeEvent
     public static void rightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         if (event.getHand() == InteractionHand.MAIN_HAND && event.getItemStack().getItem() instanceof SpiceBottleItem) {
+            if (FarmersDelightIntegration.isCuttingBoard(event.getLevel(), event.getPos())) {
+                FarmersDelightIntegration.seasonBoardItem(event);
+                return;
+            }
             // Let the bottle's useOn handle seasoning instead of opening/activating the target block.
             event.setUseBlock(Event.Result.DENY);
             event.setUseItem(Event.Result.ALLOW);
