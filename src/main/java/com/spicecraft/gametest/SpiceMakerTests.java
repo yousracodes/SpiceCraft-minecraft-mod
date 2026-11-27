@@ -185,12 +185,12 @@ public final class SpiceMakerTests {
         double intakeY = pos.getY() + SpiceMakerBlock.MODEL_HEIGHT_BLOCKS + 0.02;
         var dropped = new ItemEntity(level, pos.getX() + 0.6, intakeY, pos.getZ() + 0.5, food.copy());
         level.addFreshEntity(dropped);
-        tick(helper, machine, 1);
+        tick(helper, machine, SpiceMakerEntity.INTAKE_SCAN_INTERVAL);
         helper.assertTrue(!dropped.isAlive() && ItemStack.matches(machine.getItem(0), food),
                 "Top intake must collect edible stack and preserve item data");
         var overflow = new ItemEntity(level, pos.getX() + 0.6, intakeY, pos.getZ() + 0.5, food.copyWithCount(3));
         level.addFreshEntity(overflow);
-        tick(helper, machine, 1);
+        tick(helper, machine, SpiceMakerEntity.INTAKE_SCAN_INTERVAL);
         helper.assertTrue(machine.getItem(0).getCount() == 64 && overflow.getItem().getCount() == 2 && overflow.isAlive(),
                 "Merge to stack limit and leave excess in world");
         overflow.discard();
@@ -199,12 +199,12 @@ public final class SpiceMakerTests {
         var side = new ItemEntity(level, pos.getX() + 1.5, intakeY, pos.getZ() + 0.5, new ItemStack(Items.APPLE));
         level.addFreshEntity(stone);
         level.addFreshEntity(side);
-        tick(helper, machine, 1);
+        tick(helper, machine, SpiceMakerEntity.INTAKE_SCAN_INTERVAL);
         helper.assertTrue(machine.getItem(0).isEmpty() && stone.isAlive() && side.isAlive(), "Reject non-food and items beside machine");
         machine.setItem(0, new ItemStack(Items.CARROT));
         var mismatch = new ItemEntity(level, pos.getX() + 0.6, intakeY, pos.getZ() + 0.5, new ItemStack(Items.APPLE));
         level.addFreshEntity(mismatch);
-        tick(helper, machine, 1);
+        tick(helper, machine, SpiceMakerEntity.INTAKE_SCAN_INTERVAL);
         helper.assertTrue(machine.getItem(0).is(Items.CARROT) && machine.getItem(0).getCount() == 1 && mismatch.isAlive(),
                 "Different food must not replace occupied input");
         helper.succeed();

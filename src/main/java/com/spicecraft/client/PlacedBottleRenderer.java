@@ -17,12 +17,13 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = SpiceCraft.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class PlacedBottleRenderer implements BlockEntityRenderer<PlacedBottleEntity> {
+    private static final int VIEW_DISTANCE = 32;
     @SubscribeEvent public static void renderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(PlacedBottleRegistry.ENTITY.get(), context -> new PlacedBottleRenderer());
     }
     @Override public void render(PlacedBottleEntity entity, float tick, PoseStack pose, MultiBufferSource buffers, int light, int overlay) {
         for (int slot = 0; slot < 4; slot++) {
-        var bottle = entity.bottle(slot);
+        var bottle = entity.bottleForRender(slot);
         if (bottle.isEmpty()) continue;
         pose.pushPose();
         pose.translate(0.25 + (slot % 2) * 0.5, PlacedBottleBlock.BOTTLE_SCALE / 2.0,
@@ -34,4 +35,5 @@ public final class PlacedBottleRenderer implements BlockEntityRenderer<PlacedBot
         pose.popPose();
         }
     }
+    @Override public int getViewDistance() { return VIEW_DISTANCE; }
 }

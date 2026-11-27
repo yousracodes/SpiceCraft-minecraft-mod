@@ -17,6 +17,7 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = SpiceCraft.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class SpiceRackRenderer implements BlockEntityRenderer<SpiceRackEntity> {
+    private static final int VIEW_DISTANCE = 32;
     @SubscribeEvent public static void renderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(SpiceRackRegistry.ENTITY.get(), context -> new SpiceRackRenderer());
     }
@@ -29,7 +30,7 @@ public final class SpiceRackRenderer implements BlockEntityRenderer<SpiceRackEnt
         pose.mulPose(Axis.YP.rotationDegrees(angle));
         pose.translate(-.5, 0, -.5);
         for (int slot = 0; slot < SpiceRackEntity.SLOTS; slot++) {
-            var bottle = rack.bottle(slot);
+            var bottle = rack.bottleForRender(slot);
             if (bottle.isEmpty()) continue;
             pose.pushPose();
             // Item models are centered on (8,8,8); align their bottom with the shelf top.
@@ -41,4 +42,5 @@ public final class SpiceRackRenderer implements BlockEntityRenderer<SpiceRackEnt
         }
         pose.popPose();
     }
+    @Override public int getViewDistance() { return VIEW_DISTANCE; }
 }

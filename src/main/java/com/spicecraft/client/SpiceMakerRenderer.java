@@ -21,6 +21,7 @@ public final class SpiceMakerRenderer implements BlockEntityRenderer<SpiceMakerE
     private static final float MACHINE_CENTER = 0.5F;
     private static final float TRAY_TOP_Y = 1.45714F;
     private static final float FOOD_Y = 22.45714F;
+    private static final int VIEW_DISTANCE = 32;
 
     @SubscribeEvent
     public static void renderers(EntityRenderersEvent.RegisterRenderers event) {
@@ -30,7 +31,7 @@ public final class SpiceMakerRenderer implements BlockEntityRenderer<SpiceMakerE
     @Override
     public void render(SpiceMakerEntity machine, float partialTick, PoseStack pose,
                        MultiBufferSource buffers, int light, int overlay) {
-        var bottle = machine.displayBottle();
+        var bottle = machine.displayBottleForRender();
         if (!bottle.isEmpty()) {
             pose.pushPose();
             // Item rendering centers the model at (8,8,8); compensate to rest its base on the tray.
@@ -41,7 +42,7 @@ public final class SpiceMakerRenderer implements BlockEntityRenderer<SpiceMakerE
             pose.popPose();
         }
 
-        var food = machine.displayFood();
+        var food = machine.displayFoodForRender();
         if (food.isEmpty()) return;
         var renderer = Minecraft.getInstance().getItemRenderer();
         boolean solidModel = renderer.getModel(food, machine.getLevel(), null, 0).isGui3d();
@@ -55,4 +56,6 @@ public final class SpiceMakerRenderer implements BlockEntityRenderer<SpiceMakerE
                 pose, buffers, machine.getLevel(), (int) machine.getBlockPos().asLong());
         pose.popPose();
     }
+
+    @Override public int getViewDistance() { return VIEW_DISTANCE; }
 }

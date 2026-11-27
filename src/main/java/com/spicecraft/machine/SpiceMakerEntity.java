@@ -23,15 +23,23 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public class SpiceMakerEntity extends BlockEntity implements Container, MenuProvider {
     public static final int PROCESS_TICKS = 200;
+    public static final int INTAKE_SCAN_INTERVAL = 10;
+    private static final int PROGRESS_SAVE_INTERVAL = 20;
     private final NonNullList<ItemStack> items = NonNullList.withSize(3, ItemStack.EMPTY);
     private int progress;
     private ItemStack colorSource = ItemStack.EMPTY;
     private int sampledColor = -1;
     private ItemStack lastDisplayedBottle = ItemStack.EMPTY;
     private ItemStack lastDisplayedFood = ItemStack.EMPTY;
+    private int intakeScanCooldown;
 
     public ItemStack displayFood() {
         return isFood(items.get(0)) ? items.get(0).copyWithCount(1) : ItemStack.EMPTY;
+    }
+
+    /** Read-only view for the client renderer. The returned stack must never be mutated. */
+    public ItemStack displayFoodForRender() {
+        return isFood(items.get(0)) ? items.get(0) : ItemStack.EMPTY;
     }
 
     public ItemStack displayBottle() {
@@ -39,15 +47,24 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
         return bottle.getItem() instanceof SpiceBottleItem ? bottle.copyWithCount(1) : ItemStack.EMPTY;
     }
 
-    @Override public void setChanged() {
+    /** Read-only view for the client renderer. The returned stack must never be mutated. */
+    public ItemStack displayBottleForRender() {
+        ItemStack bottle = items.get(2).isEmpty() ? items.get(1) : items.get(2);
+        return bottle.getItem() instanceof SpiceBottleItem ? bottle : ItemStack.EMPTY;
+    }
+
+    private void inventoryChanged() {
         super.setChanged();
+        syncDisplayedItems();
+    }
+
+    private void syncDisplayedItems() {
         if (level == null || level.isClientSide) return;
-        ItemStack displayed = displayBottle();
-        ItemStack food = displayFood();
-        // Processing marks the inventory dirty every tick; only send when a displayed item changes.
+        ItemStack displayed = displayBottleForRender();
+        ItemStack food = displayFoodForRender();
         if (!ItemStack.matches(lastDisplayedBottle, displayed) || !ItemStack.matches(lastDisplayedFood, food)) {
-            lastDisplayedBottle = displayed;
-            lastDisplayedFood = food;
+            lastDisplayedBottle = displayed.isEmpty() ? ItemStack.EMPTY : displayed.copyWithCount(1);
+            lastDisplayedFood = food.isEmpty() ? ItemStack.EMPTY : food.copyWithCount(1);
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         }
     }
@@ -71,7 +88,10 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
         public int getCount() { return 1; }
     };
 
-    public SpiceMakerEntity(BlockPos pos, BlockState state) { super(MachineRegistry.ENTITY.get(), pos, state); }
+    public SpiceMakerEntity(BlockPos pos, BlockState state) {
+        super(MachineRegistry.ENTITY.get(), pos, state);
+        intakeScanCooldown = Math.floorMod(Long.hashCode(pos.asLong()), INTAKE_SCAN_INTERVAL);
+    }
     @Override public AABB getRenderBoundingBox() {
         return new AABB(worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(),
                 worldPosition.getX() + 1, worldPosition.getY() + SpiceMakerBlock.MODEL_HEIGHT_BLOCKS,
@@ -83,7 +103,12 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
     }
     public static void tick(Level level, BlockPos pos, BlockState state, SpiceMakerEntity machine) {
         if (level.isClientSide) return;
-        machine.collectFood(level, pos);
+        // Intake does not need sub-tick responsiveness. Stagger scans by position so nearby
+        // machines do not all query entities on the same server tick.
+        if (machine.intakeScanCooldown-- <= 0) {
+            machine.collectFood(level, pos);
+            machine.intakeScanCooldown = INTAKE_SCAN_INTERVAL - 1;
+        }
         if (!isFood(machine.items.get(0)) || !isEmptyBottle(machine.items.get(1))) {
             if (machine.progress != 0) { machine.progress = 0; machine.setChanged(); }
             return;
@@ -99,8 +124,12 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
             machine.items.get(1).shrink(1);
             machine.items.set(2, result);
             machine.progress = 0;
+            machine.inventoryChanged();
+            return;
         }
-        machine.setChanged();
+        // The menu data slot still synchronizes progress every tick. Persisting once per
+        // second avoids redundant dirty-marking while limiting crash rollback to one second.
+        if (machine.progress == 1 || machine.progress % PROGRESS_SAVE_INTERVAL == 0) machine.setChanged();
     }
     private void collectFood(Level level, BlockPos pos) {
         ItemStack input = items.get(0);
@@ -121,7 +150,7 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
                 input = items.get(0);
             } else {
                 input.grow(count);
-                setChanged();
+                inventoryChanged();
             }
             dropped.shrink(count);
             if (dropped.isEmpty()) entity.discard();
@@ -157,24 +186,24 @@ public class SpiceMakerEntity extends BlockEntity implements Container, MenuProv
     @Override public ItemStack removeItem(int slot, int count) {
         ItemStack result = ContainerHelper.removeItem(items, slot, count);
         if (slot == 0 && items.get(0).isEmpty()) { sampledColor = -1; colorSource = ItemStack.EMPTY; }
-        if (!result.isEmpty()) { if (slot < 2) progress = 0; setChanged(); }
+        if (!result.isEmpty()) { if (slot < 2) progress = 0; inventoryChanged(); }
         return result;
     }
     @Override public ItemStack removeItemNoUpdate(int slot) {
         if (slot < 2) progress = 0;
         if (slot == 0) { sampledColor = -1; colorSource = ItemStack.EMPTY; }
         ItemStack result = ContainerHelper.takeItem(items, slot);
-        if (!result.isEmpty()) setChanged();
+        if (!result.isEmpty()) inventoryChanged();
         return result;
     }
     @Override public void setItem(int slot, ItemStack stack) {
         if (slot == 0 && !ItemStack.isSameItemSameTags(colorSource, stack)) { sampledColor = -1; colorSource = ItemStack.EMPTY; }
         if (slot < 2 && !ItemStack.isSameItemSameTags(items.get(slot), stack)) progress = 0;
         items.set(slot, stack);
-        setChanged();
+        inventoryChanged();
     }
     @Override public boolean canPlaceItem(int slot, ItemStack stack) { return slot == 0 ? isFood(stack) : slot == 1 && isEmptyBottle(stack); }
     @Override public boolean stillValid(Player player) { return Container.stillValidBlockEntity(this, player); }
-    @Override public void clearContent() { items.clear(); progress = 0; sampledColor = -1; colorSource = ItemStack.EMPTY; setChanged(); }
+    @Override public void clearContent() { items.clear(); progress = 0; sampledColor = -1; colorSource = ItemStack.EMPTY; inventoryChanged(); }
     public int progress() { return progress; }
 }

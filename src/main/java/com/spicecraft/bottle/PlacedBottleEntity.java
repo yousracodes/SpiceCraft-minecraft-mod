@@ -14,6 +14,8 @@ public final class PlacedBottleEntity extends BlockEntity {
     private final NonNullList<ItemStack> bottles = NonNullList.withSize(SLOTS, ItemStack.EMPTY);
     public PlacedBottleEntity(BlockPos pos, BlockState state) { super(PlacedBottleRegistry.ENTITY.get(), pos, state); }
     public ItemStack bottle(int slot) { return bottles.get(slot).copy(); }
+    /** Read-only view for the client renderer. The returned stack must never be mutated. */
+    public ItemStack bottleForRender(int slot) { return bottles.get(slot); }
     public ItemStack bottle() { for (var bottle : bottles) if (!bottle.isEmpty()) return bottle.copy(); return ItemStack.EMPTY; }
     public boolean isEmpty() { return bottles.stream().allMatch(ItemStack::isEmpty); }
     public boolean insert(int slot, ItemStack stack) {

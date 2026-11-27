@@ -5,7 +5,7 @@ import com.spicecraft.color.PowderColors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.minecraft.util.RandomSource;
@@ -18,8 +18,16 @@ import java.util.*;
 
 @Mod.EventBusSubscriber(modid = SpiceCraft.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class FoodColorSampler {
-    private static final Map<String, Integer> CACHE = new LinkedHashMap<>(64, 0.75F, true) {
-        @Override protected boolean removeEldestEntry(Map.Entry<String, Integer> entry) { return size() > 512; }
+    private static final int MAX_QUADS = 256;
+    private static final int MAX_TEXTURE_VARIANTS = 16;
+    private static final int PIXEL_BUDGET_PER_QUAD = 1024;
+    private record CacheKey(net.minecraft.world.item.Item item, CompoundTag tag) {
+        static CacheKey of(ItemStack stack) {
+            return new CacheKey(stack.getItem(), stack.hasTag() ? stack.getTag().copy() : null);
+        }
+    }
+    private static final Map<CacheKey, Integer> CACHE = new LinkedHashMap<>(64, 0.75F, true) {
+        @Override protected boolean removeEldestEntry(Map.Entry<CacheKey, Integer> entry) { return size() > 512; }
     };
     private static int generation;
     public static int generation() { return generation; }
@@ -28,8 +36,7 @@ public final class FoodColorSampler {
     }
     private static void clear(ResourceManager manager) { CACHE.clear(); generation++; }
     public static int color(ItemStack food) {
-        String key = BuiltInRegistries.ITEM.getKey(food.getItem()) + ":" + food.getTag();
-        return CACHE.computeIfAbsent(key, ignored -> sample(food));
+        return CACHE.computeIfAbsent(CacheKey.of(food), ignored -> sample(food));
     }
     private static int sample(ItemStack food) {
         try {
@@ -38,7 +45,7 @@ public final class FoodColorSampler {
             if (model.isCustomRenderer()) return -1;
             List<BakedQuad> quads = new ArrayList<>(model.getQuads(null, null, RandomSource.create(42)));
             for (Direction face : Direction.values()) quads.addAll(model.getQuads(null, face, RandomSource.create(42)));
-            if (quads.isEmpty() || quads.size() > 2048) return -1;
+            if (quads.isEmpty() || quads.size() > MAX_QUADS) return -1;
             Map<String, BitSet> sampled = new HashMap<>();
             PowderColors colors = new PowderColors();
             for (BakedQuad quad : quads) {
@@ -47,8 +54,9 @@ public final class FoodColorSampler {
                 if (contents.name().toString().equals("minecraft:missingno") || contents.getUniqueFrames().limit(2).count() > 1) return -1;
                 int tint = quad.isTinted() ? minecraft.getItemColors().getColor(food, quad.getTintIndex()) : 0xFFFFFF;
                 BitSet pixels = sampled.computeIfAbsent(contents.name() + ":" + tint, ignored -> new BitSet());
-                if (sampled.size() > 32) return -1;
-                int stride = Math.max(1, (int) Math.ceil(Math.sqrt((double) contents.width() * contents.height() / 4096)));
+                if (sampled.size() > MAX_TEXTURE_VARIANTS) return -1;
+                int stride = Math.max(1, (int) Math.ceil(Math.sqrt(
+                        (double) contents.width() * contents.height() / PIXEL_BUDGET_PER_QUAD)));
                 int[] vertices = quad.getVertices();
                 int vertexSize = vertices.length / 4;
                 double[] u = new double[4], v = new double[4];

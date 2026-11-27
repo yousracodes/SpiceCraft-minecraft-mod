@@ -663,7 +663,7 @@
                                             ]
                               }
                 },
-    "render_type":  "minecraft:translucent",
+    "render_type":  "minecraft:cutout",
     "overrides":  [
                       {
                           "predicate":  {
