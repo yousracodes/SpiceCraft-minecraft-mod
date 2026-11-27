@@ -29,7 +29,7 @@ public final class SpiceRackTests {
             level.setBlock(pos, state, 3);
             var rack = (SpiceRackEntity) level.getBlockEntity(pos);
             for (int slot = 0; slot < 16; slot++) {
-                double x = (4.625 + slot % 4 * 2.25) / 16, z = .5;
+                double x = (4.625 + slot % 4 * 2.25) / 16, z = .875;
                 double wx = switch (facing) { case EAST -> 1-z; case SOUTH -> 1-x; case WEST -> z; default -> x; };
                 double wz = switch (facing) { case EAST -> x; case SOUTH -> 1-z; case WEST -> 1-x; default -> z; };
                 var point = new Vec3(pos.getX()+wx, pos.getY()+(slot/4*4+2.5)/16.0, pos.getZ()+wz);

@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Specification-Title: spicecraft
+Specification-Vendor: SpiceCraft Team
+Specification-Version: 1
+Implementation-Title: SpiceCraft
+Implementation-Version: 1.1.0
+Implementation-Vendor: SpiceCraft Team
+Implementation-Timestamp: 2026-11-27T01:23:04+0100
+

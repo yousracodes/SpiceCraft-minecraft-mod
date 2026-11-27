@@ -1,0 +1,31 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="spicecraft"
+version="1.1.0"
+displayName="SpiceCraft"
+authors="SpiceCraft Team"
+description='''SpiceCraft for Minecraft 1.20.1.'''
+
+[[dependencies.spicecraft]]
+modId="forge"
+mandatory=true
+versionRange="[47,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.spicecraft]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.spicecraft]]
+modId="farmersdelight"
+mandatory=false
+versionRange="[1.2,2)"
+ordering="AFTER"
+side="BOTH"

@@ -24,18 +24,18 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public final class SpiceRackBlock extends net.minecraft.world.level.block.BaseEntityBlock {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     private static final VoxelShape NORTH = Shapes.or(
-            Block.box(3, 0, 9.5, 13, 16, 10),
-            Block.box(3, 0, 6, 3.5, 16, 9.5),
-            Block.box(12.5, 0, 6, 13, 16, 9.5),
-            Block.box(3.5, 0, 6.5, 12.5, 0.5, 9.5),
-            Block.box(3.5, 0.5, 6.25, 12.5, 0.85, 6.6),
-            Block.box(3.5, 4, 6.5, 12.5, 4.5, 9.5),
-            Block.box(3.5, 4.5, 6.25, 12.5, 4.85, 6.6),
-            Block.box(3.5, 8, 6.5, 12.5, 8.5, 9.5),
-            Block.box(3.5, 8.5, 6.25, 12.5, 8.85, 6.6),
-            Block.box(3.5, 12, 6.5, 12.5, 12.5, 9.5),
-            Block.box(3.5, 12.5, 6.25, 12.5, 12.85, 6.6),
-            Block.box(3.5, 15.5, 9, 12.5, 16, 9.5));
+            Block.box(3, 0, 15.5, 13, 16, 16),
+            Block.box(3, 0, 12, 3.5, 16, 15.5),
+            Block.box(12.5, 0, 12, 13, 16, 15.5),
+            Block.box(3.5, 0, 12.5, 12.5, 0.5, 15.5),
+            Block.box(3.5, 0.5, 12.25, 12.5, 0.85, 12.6),
+            Block.box(3.5, 4, 12.5, 12.5, 4.5, 15.5),
+            Block.box(3.5, 4.5, 12.25, 12.5, 4.85, 12.6),
+            Block.box(3.5, 8, 12.5, 12.5, 8.5, 15.5),
+            Block.box(3.5, 8.5, 12.25, 12.5, 8.85, 12.6),
+            Block.box(3.5, 12, 12.5, 12.5, 12.5, 15.5),
+            Block.box(3.5, 12.5, 12.25, 12.5, 12.85, 12.6),
+            Block.box(3.5, 15.5, 15, 12.5, 16, 15.5));
     private static final VoxelShape[] SHAPES = new VoxelShape[4];
     static {
         SHAPES[0] = NORTH;

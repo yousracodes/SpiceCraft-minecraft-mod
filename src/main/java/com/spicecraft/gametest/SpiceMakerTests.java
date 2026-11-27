@@ -13,6 +13,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -24,6 +25,22 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @GameTestHolder(SpiceCraft.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class SpiceMakerTests {
+    @GameTest(template = "empty")
+    public static void placementSetsFacing(GameTestHelper helper) {
+        var player = helper.makeMockPlayer();
+        var pos = helper.absolutePos(new BlockPos(1, 1, 1));
+        var hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
+        var item = MachineRegistry.ITEM.get().getDefaultInstance();
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
+            player.setYRot(direction.toYRot());
+            var context = new BlockPlaceContext(player, InteractionHand.MAIN_HAND, item, hit);
+            var state = MachineRegistry.BLOCK.get().getStateForPlacement(context);
+            helper.assertTrue(state != null && state.getValue(SpiceMakerBlock.FACING) == direction.getOpposite(),
+                    "Machine should face opposite the player's direction " + direction);
+        }
+        helper.succeed();
+    }
+
     @GameTest(template = "empty")
     public static void colorFamiliesPreferGoldOverShadows(GameTestHelper helper) {
         var gold = new com.spicecraft.color.PowderColors();

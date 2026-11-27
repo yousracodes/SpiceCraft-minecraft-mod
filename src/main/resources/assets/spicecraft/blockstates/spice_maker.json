@@ -1,1 +1,8 @@
-{"variants":{"":{"model":"spicecraft:block/spice_maker"}}}
+{
+  "variants": {
+    "facing=north": { "model": "spicecraft:block/spice_maker" },
+    "facing=east": { "model": "spicecraft:block/spice_maker", "y": 90 },
+    "facing=south": { "model": "spicecraft:block/spice_maker", "y": 180 },
+    "facing=west": { "model": "spicecraft:block/spice_maker", "y": 270 }
+  }
+}

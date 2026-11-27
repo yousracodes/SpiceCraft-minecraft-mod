@@ -34,7 +34,7 @@ public final class SpiceRackRenderer implements BlockEntityRenderer<SpiceRackEnt
             if (bottle.isEmpty()) continue;
             pose.pushPose();
             // Item models are centered on (8,8,8); align their bottom with the shelf top.
-            pose.translate((4.625 + (slot % 4) * 2.25) / 16, (2.5 + (slot / 4) * 4) / 16, 8.0 / 16);
+            pose.translate((4.625 + (slot % 4) * 2.25) / 16, (2.5 + (slot / 4) * 4) / 16, 14.0 / 16);
             pose.scale(.25F, .25F, .25F);
             Minecraft.getInstance().getItemRenderer().renderStatic(bottle, ItemDisplayContext.NONE, light, overlay,
                     pose, buffers, rack.getLevel(), (int) rack.getBlockPos().asLong() + slot);
